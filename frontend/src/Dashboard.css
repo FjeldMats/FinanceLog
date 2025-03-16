@@ -1,0 +1,26 @@
+.year-selector {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  
+  .year-selector button {
+    padding: 10px 20px;
+    margin: 0 5px;
+    background-color: #f4f4f4;
+    color: #333;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .year-selector button:hover {
+    background-color: #ddd;
+  }
+  
+  .year-selector button.active {
+    background-color: #36A2EB;
+    color: white;
+  }
+  

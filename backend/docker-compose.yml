@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: .
+    container_name: finance_backend
+    ports:
+      - "5000:5000" # Map Flask app to host port 5000
+    environment:
+      DATABASE_URL: postgresql://admin:password@database/finance_tracker
+      SECRET_KEY: your_secret_key
+    depends_on:
+      - database
