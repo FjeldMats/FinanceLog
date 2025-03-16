@@ -30,5 +30,16 @@ services:
       - ./database/data:/data
     restart: always
 
+  frontend:
+    build:
+      context: ./frontend
+    container_name: react_app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    command: npm start
+    restart: always
+
 volumes:
   postgres_data:
