@@ -20,16 +20,34 @@ def get_transactions():
 def add_transaction():
     """Add a new transaction."""
     data = request.get_json()
-    transaction = Transaction(
-        transaction_date=data['transaction_date'],
-        category=data['category'],
-        subcategory=data.get('subcategory'),
-        description=data.get('description'),
-        amount=data['amount']
-    )
-    db.session.add(transaction)
-    db.session.commit()
-    return jsonify(transaction.to_dict()), 201
+
+    # Debugging: Print received data
+    print("Received Data:", data)
+
+    if not data:
+        return jsonify({"error": "No data received"}), 400
+
+    try:
+        transaction = Transaction(
+            transaction_date=data['transaction_date'],
+            category=data['category'],
+            subcategory=data.get('subcategory'),
+            description=data.get('description'),
+            amount=data['amount']
+        )
+
+        db.session.add(transaction)
+        db.session.commit()
+
+        # Debugging: Check if it was committed
+        print("Transaction Added:", transaction.to_dict())
+
+        return jsonify(transaction.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()  # Rollback in case of error
+        print("Error adding transaction:", str(e))
+        return jsonify({"error": "Failed to add transaction"}), 500
+
 
 @api.route('/transaction/<int:transaction_id>', methods=['DELETE'])
 def delete_transaction(transaction_id):

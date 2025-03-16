@@ -31,3 +31,4 @@ def clean_csv(input_file, output_file):
 # Clean both 2023.csv and 2024.csv
 clean_csv('data/2023.csv', 'data/2023_cleaned.csv')
 clean_csv('data/2024.csv', 'data/2024_cleaned.csv')
+clean_csv('data/2025.csv', 'data/2025_cleaned.csv')

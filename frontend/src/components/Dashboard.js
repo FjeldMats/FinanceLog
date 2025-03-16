@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import PieChartView from './PieChartView';
-import BarChartView from './BarChartView'; // Import the BarChartView
+import StackedChartView from './StackedChartView';
+import BarChartView from './BarChartView';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ComposedChart, CartesianGrid } from 'recharts';
 import { getTransactions } from '../api';
 import '../Dashboard.css';
 
 const Dashboard = () => {
   const [transactions, setTransactions] = useState([]);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
     const loadTransactions = async () => {
@@ -26,44 +26,95 @@ const Dashboard = () => {
         })
         .filter((year) => year !== null)
     ),
-  ];
+  ].sort((a, b) => a - b); // Sort years in ascending order
 
-  // Filter transactions by selected year for the pie chart
-  const filteredTransactions = transactions.filter((tx) => {
+  // Group transactions by month for income, expenditure, and difference
+  const financialData = transactions.reduce((acc, tx) => {
     const date = new Date(tx.transaction_date);
-    return date.getFullYear() === selectedYear;
-  });
+    const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`; // Format: YYYY-MM
+
+    if (!acc[monthKey]) {
+      acc[monthKey] = { date: monthKey, income: 0, expenditure: 0, difference: 0 };
+    }
+
+    if (tx.category.trim() === 'Inntekt') {
+      acc[monthKey].income += tx.amount;
+    } else {
+      acc[monthKey].expenditure += tx.amount;
+    }
+
+    // Calculate the difference (income - expenditure)
+    acc[monthKey].difference = acc[monthKey].income - acc[monthKey].expenditure;
+
+    return acc;
+  }, {});
+
+  // Convert data into an array and sort by date
+  const sortedFinancialData = Object.values(financialData).sort((a, b) => new Date(a.date) - new Date(b.date));
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-        {availableYears.map((year) => (
-          <button
-            key={year}
-            onClick={() => setSelectedYear(year)}
-            style={{
-              padding: '10px 20px',
-              margin: '0 5px',
-              backgroundColor: year === selectedYear ? '#36A2EB' : '#f4f4f4',
-              color: year === selectedYear ? 'white' : '#333',
-              border: '1px solid #ccc',
-              borderRadius: '5px',
-              cursor: 'pointer',
-            }}
-          >
-            {year}
-          </button>
-        ))}
+    <div className="dashboard-container">
+      <h1>Expenditure Breakdown</h1>
+      <div className="chart-container">
+        {availableYears.map((year) => {
+          const yearTransactions = transactions.filter((tx) => {
+            const date = new Date(tx.transaction_date);
+            return date.getFullYear() === year;
+          });
+
+          return (
+            <div key={year} style={{ flex: `1 1 ${100 / availableYears.length}%`, maxWidth: '100%' }}>
+              <h2 style={{ textAlign: 'center' }}>{year}</h2>
+              <StackedChartView transactions={yearTransactions} />
+            </div>
+          );
+        })}
       </div>
+
+      <h1>Expenditure Comparison by Month</h1>
       <div>
-        <h1>Expendeture breakdown</h1>
-        {/* Pass only filtered transactions to the PieChart */}
-        <PieChartView transactions={filteredTransactions} />
-      </div>
-      <h1>Expendeture comparison on month </h1>
-      <div>
-        {/* Pass all transactions to the BarChart */}
         <BarChartView transactions={transactions} />
+      </div>
+
+      {/* NEW COMBINED CHART: Income, Expenditure & Difference */}
+      <h1>Income, Expenditure & Savings Over Time</h1>
+      <div className="income-chart-container">
+        {sortedFinancialData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={350}>
+            <ComposedChart data={sortedFinancialData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" tickFormatter={(date) => date} />
+              <YAxis />
+              <Tooltip formatter={(value) => `${parseFloat(value).toLocaleString()} NOK`} />
+              <Legend />
+              
+              {/* Income Line - Green */}
+              <Line type="monotone" dataKey="income" stroke="#2ECC71" strokeWidth={2} name="Income (Inntekt)" />
+              {/* Expenditure Line - Red */}
+              <Line type="monotone" dataKey="expenditure" stroke="#E74C3C" strokeWidth={2} name="Expenditure" />
+              
+              {/* Difference Bar - Green for Surplus, Red for Deficit */}
+              <Bar dataKey="difference" name="Savings/Loss"
+                   fill="#2ECC71"
+                   barSize={20}
+                   shape={(props) => {
+                     const { fill, x, y, width, height, payload } = props;
+                     return (
+                       <rect
+                         x={x}
+                         y={y}
+                         width={width}
+                         height={height}
+                         fill={payload.difference >= 0 ? "#2ECC71" : "#E74C3C"}
+                       />
+                     );
+                   }}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        ) : (
+          <p>No financial data available.</p>
+        )}
       </div>
     </div>
   );

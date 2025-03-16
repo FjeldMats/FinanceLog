@@ -19,5 +19,9 @@ BEGIN
         COPY transactions(transaction_date, category, subcategory, description, amount)
         FROM '/data/2024_cleaned.csv'
         WITH (FORMAT csv, HEADER true, DELIMITER ',');
+
+        COPY transactions(transaction_date, category, subcategory, description, amount)
+        FROM '/data/2025_cleaned.csv'
+        WITH (FORMAT csv, HEADER true, DELIMITER ',');
     END IF;
 END $$;
