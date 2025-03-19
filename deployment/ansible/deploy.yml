@@ -1,0 +1,63 @@
+- name: Deploy FinanceLog Application
+  hosts: all
+  become: true
+
+  vars:
+    docker_compose_file: ./FinanceLog/docker-compose.yml
+    project_dir: ./FinanceLog
+
+  tasks:
+    - name: Ensure finance_user exists
+      user:
+        name: finance_user
+        state: present
+        shell: /bin/bash
+
+    - name: Ensure Docker is installed
+      apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+
+    - name: Ensure Docker Compose is installed
+      apt:
+        name: docker-compose
+        state: present
+        update_cache: yes
+
+    - name: Create project directory
+      file:
+        path: "{{ project_dir }}"
+        state: directory
+        owner: finance_user
+        group: finance_user
+        mode: '0755'
+
+    - name: Copy project files to the server
+      synchronize:
+        src: "{{ playbook_dir }}/../.."
+        dest: "{{ project_dir }}"
+        rsync_opts:
+          - "--exclude=.git"
+          - "--exclude=node_modules"
+          - "--exclude=__pycache__"
+      become: false  # Ensure rsync runs as the connecting user
+      delegate_to: localhost  # Run rsync locally to avoid sudo issues
+
+    - name: Set permissions for project directory
+      file:
+        path: "{{ project_dir }}"
+        state: directory
+        owner: finance_user
+        group: finance_user
+        recurse: yes
+
+    - name: Stop existing application using Docker Compose
+      command: docker-compose down
+      args:
+        chdir: "{{ project_dir }}"
+
+    - name: Start application using Docker Compose
+      command: docker-compose up -d
+      args:
+        chdir: "{{ project_dir }}"
