@@ -2,6 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 
+
 db = SQLAlchemy()
 
 def create_app():
@@ -9,7 +10,7 @@ def create_app():
     app.config.from_object('config.Config')
 
     # Apply CORS before registering any routes
-    CORS(app, resources={r"/*": {"origins": "*"}})
+    CORS(app,  resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
     
     # Initialize extensions

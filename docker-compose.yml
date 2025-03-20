@@ -5,23 +5,19 @@ services:
     build:
       context: ./backend
     container_name: finance_backend
-    ports:
-      - "5000:5000"
+    network_mode: host
     environment:
-      DATABASE_URL: postgresql://admin:password@database/finance_tracker
+      DATABASE_URL: postgresql://admin:password@192.168.1.252/finance_tracker
       SECRET_KEY: your_secret_key
     depends_on:
       - database
     restart: always
-    networks:
-      - finance_network
 
   database:
     build:
       context: ./database
     container_name: postgres_transactions
-    ports:
-      - "5432:5432"
+    network_mode: host
     environment:
       POSTGRES_DB: finance_tracker
       POSTGRES_USER: admin
@@ -31,8 +27,6 @@ services:
       - ./database/init:/docker-entrypoint-initdb.d
       - ./database/data:/data
     restart: always
-    networks:
-      - finance_network
 
   frontend:
     build:
@@ -40,7 +34,6 @@ services:
     container_name: react_app
     volumes:
       - ./frontend:/app
-    command: sh -c "npm install && npm start"
     restart: always
     networks:
       - finance_network

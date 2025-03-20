@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Only create the table if it doesn't exist
 DO $$
 BEGIN
@@ -23,5 +25,20 @@ BEGIN
         COPY transactions(transaction_date, category, subcategory, description, amount)
         FROM '/data/2025_cleaned.csv'
         WITH (FORMAT csv, HEADER true, DELIMITER ',');
+    END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL
+);
+
+-- Insert default admin user
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM users WHERE username = 'admin') THEN
+        INSERT INTO users (username, password_hash)
+        VALUES ('admin', crypt('password', gen_salt('bf')));
     END IF;
 END $$;

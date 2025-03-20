@@ -3,7 +3,6 @@
   become: true
 
   vars:
-    docker_compose_file: ./FinanceLog/docker-compose.yml
     project_dir: ./FinanceLog
 
   tasks:
@@ -41,8 +40,8 @@
           - "--exclude=.git"
           - "--exclude=node_modules"
           - "--exclude=__pycache__"
-      become: false  # Ensure rsync runs as the connecting user
-      delegate_to: localhost  # Run rsync locally to avoid sudo issues
+      become: false
+      delegate_to: localhost
 
     - name: Set permissions for project directory
       file:
@@ -51,6 +50,26 @@
         owner: finance_user
         group: finance_user
         recurse: yes
+
+    - name: Build backend Docker image
+      command: docker-compose build backend
+      args:
+        chdir: "{{ project_dir }}"
+
+    - name: Build frontend Docker image
+      command: docker-compose build frontend
+      args:
+        chdir: "{{ project_dir }}"
+
+    - name: Check for docker-compose.yml file
+      stat:
+        path: "{{ project_dir }}/docker-compose.yml"
+      register: docker_compose_file
+
+    - name: (Optional) Build database Docker image
+      command: docker-compose build database
+      args:
+        chdir: "{{ project_dir }}"
 
     - name: Stop existing application using Docker Compose
       command: docker-compose down

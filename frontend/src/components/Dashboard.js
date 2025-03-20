@@ -87,28 +87,31 @@ const Dashboard = () => {
               <YAxis />
               <Tooltip formatter={(value) => `${parseFloat(value).toLocaleString()} NOK`} />
               <Legend />
-              
+
               {/* Income Line - Green */}
               <Line type="monotone" dataKey="income" stroke="#2ECC71" strokeWidth={2} name="Income (Inntekt)" />
               {/* Expenditure Line - Red */}
               <Line type="monotone" dataKey="expenditure" stroke="#E74C3C" strokeWidth={2} name="Expenditure" />
-              
+
               {/* Difference Bar - Green for Surplus, Red for Deficit */}
               <Bar dataKey="difference" name="Savings/Loss"
-                   fill="#2ECC71"
-                   barSize={20}
-                   shape={(props) => {
-                     const { fill, x, y, width, height, payload } = props;
-                     return (
-                       <rect
-                         x={x}
-                         y={y}
-                         width={width}
-                         height={height}
-                         fill={payload.difference >= 0 ? "#2ECC71" : "#E74C3C"}
-                       />
-                     );
-                   }}
+                barSize={20}
+                shape={(props) => {
+                  const { x, y, width, height, payload } = props;
+                  // Use the absolute height
+                  const computedHeight = Math.abs(height);
+                  // If the value is negative, adjust the y coordinate to start at the bottom.
+                  const computedY = height < 0 ? y + height : y;
+                  return (
+                    <rect
+                      x={x}
+                      y={computedY}
+                      width={width}
+                      height={computedHeight}
+                      fill={payload.difference >= 0 ? "#2ECC71" : "#E74C3C"}
+                    />
+                  );
+                }}
               />
             </ComposedChart>
           </ResponsiveContainer>
