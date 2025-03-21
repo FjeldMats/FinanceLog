@@ -104,6 +104,28 @@ body, html {
   border: 1px solid #ddd;
 }
 
+/* ✅ Filter Input & Dropdown Styles for TransactionTable */
+.transaction-table-container .filters {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.transaction-table-container .filters input,
+.transaction-table-container .filters select {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  margin-right: 10px;
+  font-size: 16px;
+}
+
+.transaction-table-container .filters input:focus,
+.transaction-table-container .filters select:focus {
+  border-color: #36A2EB;
+  outline: none;
+}
+
 .transaction-table {
   width: 100%;
   border-collapse: collapse;
@@ -202,4 +224,96 @@ body, html {
 
 .login-container button:hover {
   background-color: #2b8dd2;
+}
+
+/* ✅ Categories Page Styles */
+.categories-container {
+  padding: 20px;
+  margin: 20px auto;
+  width: 95%;       /* use a fluid width */
+  max-width: none;  /* remove fixed max width */
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow-x: auto; /* ensure table stays within container */
+}
+
+.year-buttons {
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%; /* ensure container uses full width */
+}
+
+.year-button {
+  margin-right: 8px;
+  padding: 8px 12px;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.year-button.active,
+.year-button:hover {
+  background-color: #36A2EB;
+  color: white;
+}
+
+.categories-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  /* remove table-layout fixed for dynamic resizing */
+  table-layout: auto;
+}
+
+.categories-table th,
+.categories-table td {
+  padding: 10px;
+  border: 1px solid #ddd;
+}
+
+/* Increase category (first) column width and prevent word wrap */
+.categories-table th:first-child,
+.categories-table td:first-child {
+  min-width: 150px; /* adjust as necessary */
+  white-space: nowrap;
+}
+
+/* Optional: enforce a minimum row height */
+.categories-table tr {
+  min-height: 50px; /* adjust as needed */
+}
+
+.categories-table th {
+  background-color: #f4f4f4;
+}
+
+.breakdown-buttons {
+  /* same centering as year-buttons */
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.breakdown-button {
+  margin-right: 8px;
+  padding: 8px 12px;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.breakdown-button.active,
+.breakdown-button:hover {
+  background-color: #36A2EB;
+  color: white;
 }

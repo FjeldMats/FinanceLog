@@ -52,14 +52,24 @@
         recurse: yes
 
     - name: Build backend Docker image
-      command: docker-compose build backend
+      environment:
+        DOCKER_BUILDKIT: "1"
+        COMPOSE_DOCKER_CLI_BUILD: "1"
+      command: docker-compose build --pull backend
       args:
         chdir: "{{ project_dir }}"
+      async: 600
+      poll: 0
+      register: backend_build
 
     - name: Build frontend Docker image
+      environment:
+        DOCKER_BUILDKIT: "1"
+        COMPOSE_DOCKER_CLI_BUILD: "1"
       command: docker-compose build frontend
       args:
         chdir: "{{ project_dir }}"
+      register: frontend_build
 
     - name: Check for docker-compose.yml file
       stat:
@@ -67,7 +77,7 @@
       register: docker_compose_file
 
     - name: (Optional) Build database Docker image
-      command: docker-compose build database
+      command: docker-compose build --pull database
       args:
         chdir: "{{ project_dir }}"
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import StackedChartView from './StackedChartView';
 import BarChartView from './BarChartView';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ComposedChart, CartesianGrid } from 'recharts';
+import { Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ComposedChart, CartesianGrid } from 'recharts';
 import { getTransactions } from '../api';
 import '../Dashboard.css';
 

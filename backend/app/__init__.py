@@ -8,6 +8,7 @@ db = SQLAlchemy()
 def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
+    app.secret_key = "your_secret_key_here"  # Added secret key here
 
     # Apply CORS before registering any routes
     CORS(app,  resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)

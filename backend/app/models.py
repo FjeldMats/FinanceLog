@@ -1,5 +1,6 @@
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import extract  # added import
 
 class Transaction(db.Model):
     __tablename__ = 'transactions'
@@ -20,6 +21,14 @@ class Transaction(db.Model):
             "description": self.description,
             "amount": float(self.amount),
         }
+
+    @classmethod
+    def get_by_month_and_category(cls, year, month, category):
+        return cls.query.filter(
+            extract('year', cls.transaction_date) == year,
+            extract('month', cls.transaction_date) == month,
+            cls.category == category
+        ).all()
 
 class User(db.Model):
     __tablename__ = 'users'

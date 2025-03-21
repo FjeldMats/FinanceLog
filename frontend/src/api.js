@@ -21,9 +21,9 @@ axios.interceptors.response.use(
   }
 );
 
-export const getTransactions = async () => {
+export const getTransactions = async (params = {}) => { // updated function to accept parameters
   try {
-    const response = await axios.get(`${API_URL}/transactions`);
+    const response = await axios.get(`${API_URL}/transactions`, { params });
     return response.data;
   } catch (error) {
     console.error('Error fetching transactions:', error.response?.data || error.message);

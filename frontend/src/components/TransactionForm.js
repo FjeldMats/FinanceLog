@@ -5,7 +5,7 @@ const CATEGORY_OPTIONS = {
   Hus: ['Lån Storebrand', 'Eindomskatt (moss kommune)', 'Renovasjon (moss kommune)', 'Gjensidige forsikring hus'],
   'Faste utgifter': ['Telia telefon', 'Telia internett/Tv', 'Strøm'],
   Personelig: ['Spenst', 'Klær', 'Sparing'],
-  Mat: ['Rema 1000', 'Kiwi', 'Spar', 'Meny', 'Bunnpris', 'Willis', 'Nordby', 'Div butikk'],
+  Mat: ['Rema 1000', 'Kiwi', 'Spar', 'Meny', 'Bunnpris', 'Willis', 'Nordby', 'Obs', 'Div butikk'],
   Transport: ['Bensin', 'Toyota lån', 'Parkering', 'Gejensidige forsikring', 'Service', 'Bompenger'],
   Andre: ['Gaver', 'Hage', 'Andre'],
   Inntekt: ['Alders pensjon jan', 'EU pensjon jan', 'pensjon storebrand jan', 'Moss kommune jan', 'Div inntekter jan', 'Alders pensjon Bjørg', 'pensjon moss kommune bjørg', 'div inntekter']
