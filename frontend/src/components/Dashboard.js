@@ -87,29 +87,66 @@ const Dashboard = () => {
               <YAxis />
               <Tooltip formatter={(value) => `${parseFloat(value).toLocaleString()} NOK`} />
               <Legend />
+              
+              {/* Add patterns */}
+              <defs>
+                <pattern id="pattern-positive" patternUnits="userSpaceOnUse" width="10" height="10">
+                  <path d="M0 10L10 0" strokeWidth="1" stroke="#fff" fill="none"/>
+                </pattern>
+                <pattern id="pattern-negative" patternUnits="userSpaceOnUse" width="10" height="10">
+                  <path d="M0 0L10 10" strokeWidth="1" stroke="#fff" fill="none"/>
+                </pattern>
+              </defs>
 
               {/* Income Line - Green */}
-              <Line type="monotone" dataKey="income" stroke="#2ECC71" strokeWidth={2} name="Income (Inntekt)" />
+              <Line 
+                type="monotone" 
+                dataKey="income" 
+                stroke="#2ECC71" 
+                strokeWidth={2} 
+                name="Income (Inntekt)"
+              />
               {/* Expenditure Line - Red */}
-              <Line type="monotone" dataKey="expenditure" stroke="#E74C3C" strokeWidth={2} name="Expenditure" />
+              <Line 
+                type="monotone" 
+                dataKey="expenditure" 
+                stroke="#E74C3C" 
+                strokeWidth={2} 
+                name="Expenditure"
+              />
 
-              {/* Difference Bar - Green for Surplus, Red for Deficit */}
-              <Bar dataKey="difference" name="Savings/Loss"
+              {/* Difference Bar - Green for Surplus, Red for Deficit with patterns */}
+              <Bar 
+                dataKey="difference" 
+                name="Savings/Loss"
                 barSize={20}
                 shape={(props) => {
                   const { x, y, width, height, payload } = props;
-                  // Use the absolute height
                   const computedHeight = Math.abs(height);
-                  // If the value is negative, adjust the y coordinate to start at the bottom.
                   const computedY = height < 0 ? y + height : y;
+                  const isPositive = payload.difference >= 0;
+                  
+                  // Different colors for positive/negative
+                  const baseColor = isPositive ? "#27AE60" : "#C0392B";
+                  
                   return (
-                    <rect
-                      x={x}
-                      y={computedY}
-                      width={width}
-                      height={computedHeight}
-                      fill={payload.difference >= 0 ? "#2ECC71" : "#E74C3C"}
-                    />
+                    <g>
+                      <rect
+                        x={x}
+                        y={computedY}
+                        width={width}
+                        height={computedHeight}
+                        fill={baseColor}
+                      />
+                      <rect
+                        x={x}
+                        y={computedY}
+                        width={width}
+                        height={computedHeight}
+                        fill={`url(#pattern-${isPositive ? 'positive' : 'negative'})`}
+                        fillOpacity={0.4}
+                      />
+                    </g>
                   );
                 }}
               />

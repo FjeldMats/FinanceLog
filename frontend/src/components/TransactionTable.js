@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { getTransactions, deleteTransaction } from '../api';
+import { getTransactions, deleteTransaction, updateTransaction } from '../api';
+import './TransactionTable.css';
 
 const formatNumber = (num) => {
   return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num) + ' NOK';
@@ -16,6 +17,18 @@ const TransactionTable = () => {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [monthYearFilter, setMonthYearFilter] = useState('');
   const [transactionToDelete, setTransactionToDelete] = useState(null); // New state for modal
+  const [editingTransaction, setEditingTransaction] = useState(null);
+
+  // Add CATEGORY_OPTIONS from TransactionForm.js
+  const CATEGORY_OPTIONS = {
+    Hus: ['Lån Storebrand', 'Eindomskatt (moss kommune)', 'Renovasjon (moss kommune)', 'Gjensidige forsikring hus'],
+    'Faste utgifter': ['Telia telefon', 'Telia internett/Tv', 'Strøm'],
+    Personelig: ['Spenst', 'Klær', 'Sparing'],
+    Mat: ['Rema 1000', 'Kiwi', 'Spar', 'Meny', 'Bunnpris', 'Willis', 'Nordby', 'Obs', 'Div butikk'],
+    Transport: ['Bensin', 'Toyota lån', 'Parkering', 'Gejensidige forsikring', 'Service', 'Bompenger'],
+    Andre: ['Gaver', 'Hage', 'Andre'],
+    Inntekt: ['Alders pensjon jan', 'EU pensjon jan', 'pensjon storebrand jan', 'Moss kommune jan', 'Div inntekter jan']
+  };
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -128,13 +141,90 @@ const TransactionTable = () => {
               <td>{tx.subcategory}</td>
               <td>{tx.description}</td>
               <td className={tx.amount >= 0 ? 'positive' : 'negative'}>{formatNumber(tx.amount)}</td>
-              <td>
+              <td className="actions-cell">
+                <button className="edit-button" onClick={() => setEditingTransaction(tx)}>Edit</button>
                 <button className="delete-button" onClick={() => setTransactionToDelete(tx)}>Delete</button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+      
+      {/* Add Edit Modal */}
+      {editingTransaction && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>Edit Transaction</h3>
+            <div className="form-group">
+              <label>Category:</label>
+              <select
+                value={editingTransaction.category}
+                onChange={(e) => setEditingTransaction({
+                  ...editingTransaction,
+                  category: e.target.value,
+                  subcategory: ''
+                })}
+              >
+                {Object.keys(CATEGORY_OPTIONS).map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Subcategory:</label>
+              <select
+                value={editingTransaction.subcategory || ''}
+                onChange={(e) => setEditingTransaction({
+                  ...editingTransaction,
+                  subcategory: e.target.value
+                })}
+              >
+                <option value="">Select Subcategory</option>
+                {CATEGORY_OPTIONS[editingTransaction.category]?.map((sub) => (
+                  <option key={sub} value={sub}>{sub}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Amount:</label>
+              <input
+                type="number"
+                value={editingTransaction.amount}
+                onChange={(e) => setEditingTransaction({
+                  ...editingTransaction,
+                  amount: parseFloat(e.target.value) || 0
+                })}
+              />
+            </div>
+            <div className="modal-buttons">
+              <button
+                className="save-button"
+                onClick={async () => {
+                  try {
+                    await updateTransaction(editingTransaction.id, editingTransaction);
+                    setTransactions(transactions.map(t => 
+                      t.id === editingTransaction.id ? editingTransaction : t
+                    ));
+                    setEditingTransaction(null);
+                  } catch (error) {
+                    alert('Failed to update transaction');
+                  }
+                }}
+              >
+                Save
+              </button>
+              <button
+                className="cancel-button"
+                onClick={() => setEditingTransaction(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Existing Delete Modal */}
       {transactionToDelete && (
         <div className="modal-overlay" style={{
           position: 'fixed',

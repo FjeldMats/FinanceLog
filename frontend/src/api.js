@@ -52,3 +52,15 @@ export const deleteTransaction = async (id) => {
     throw error;
   }
 };
+
+export const updateTransaction = async (id, transaction) => {
+  try {
+    const response = await axios.put(`${API_URL}/transaction/${id}`, transaction, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating transaction:', error.response?.data || error.message);
+    throw error;
+  }
+};

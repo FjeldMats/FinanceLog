@@ -317,3 +317,14 @@ body, html {
   background-color: #36A2EB;
   color: white;
 }
+
+/* Add these styles for the category buttons */
+.category-button:hover {
+  background-color: #0056b3 !important;
+  color: white !important;
+}
+
+.category-button.active {
+  background-color: #007bff !important;
+  color: white !important;
+}

@@ -73,3 +73,27 @@ def delete_transaction(transaction_id):
     db.session.delete(transaction)
     db.session.commit()
     return jsonify({"message": "Transaction deleted successfully"}), 200
+
+@api.route('/transaction/<int:transaction_id>', methods=['PUT'])
+def update_transaction(transaction_id):
+    """Update a transaction."""
+    transaction = Transaction.query.get_or_404(transaction_id)
+    data = request.get_json()
+
+    try:
+        if 'category' in data:
+            transaction.category = data['category']
+        if 'subcategory' in data:
+            transaction.subcategory = data['subcategory']
+        if 'description' in data:
+            transaction.description = data['description']
+        if 'amount' in data:
+            transaction.amount = data['amount']
+        if 'transaction_date' in data:
+            transaction.transaction_date = data['transaction_date']
+
+        db.session.commit()
+        return jsonify(transaction.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to update transaction: {str(e)}"}), 500

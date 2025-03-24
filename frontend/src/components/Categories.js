@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getTransactions } from '../api';
 
 const CATEGORY_OPTIONS = {
-  Hus: ['Lån Storebrand', 'Eindomskatt (moss kommune)', 'Renovasjon (moss kommune)', 'Gjensidige forsikring hus'],
+  Hus: ['Lån Storebrand', 'Eindomskatt  (moss kommune)', 'Renovasjon (moss kommune)', 'Gjensidige forsikring hus'],
   'Faste utgifter': ['Telia telefon', 'Telia internett/Tv', 'Strøm'],
   Personelig: ['Spenst', 'Klær', 'Sparing'],
   Mat: ['Rema 1000', 'Kiwi', 'Spar', 'Meny','Obs', 'Bunnpris', 'Willis', 'Nordby', 'Div butikk'],
@@ -94,23 +94,49 @@ const Categories = () => {
   const aggregateSubData = (mainCat) => {
     const result = {};
     const subCategories = CATEGORY_OPTIONS[mainCat];
-    subCategories.forEach(subcat => {
-      result[subcat] = {};
-      Months.forEach(month => {
-        result[subcat][month] = 0;
-      });
+    
+    // Add "Uncategorized" to track unmatched transactions
+    result["Uncategorized"] = {};
+    Months.forEach(month => {
+        result["Uncategorized"][month] = 0;
     });
+
+    // Initialize regular subcategories
+    subCategories.forEach(subcat => {
+        result[subcat] = {};
+        Months.forEach(month => {
+            result[subcat][month] = 0;
+        });
+    });
+
     transactions
-      .filter(t => new Date(t.transaction_date).getFullYear() === selectedYear)
-      .forEach(t => {
-        if (t.subcategory) {
-          const found = subCategories.find(s => s.toLowerCase() === t.subcategory.toLowerCase());
-          if (found) {
+        .filter(t => {
+            // Filter transactions by main category AND selected year
+            const transactionYear = new Date(t.transaction_date).getFullYear();
+            return t.category.toLowerCase() === mainCat.toLowerCase() && 
+                   transactionYear === selectedYear;
+        })
+        .forEach(t => {
             const month = new Date(t.transaction_date).getMonth() + 1;
-            result[found][month] += parseFloat(t.amount);
-          }
-        }
-      });
+            const amount = parseFloat(t.amount);
+
+            if (t.subcategory) {
+                // Try to find matching subcategory
+                const found = subCategories.find(s => 
+                    s.toLowerCase() === t.subcategory.toLowerCase()
+                );
+                if (found) {
+                    result[found][month] += amount;
+                } else {
+                    // If no matching subcategory found, add to Uncategorized
+                    result["Uncategorized"][month] += amount;
+                }
+            } else {
+                // If no subcategory provided, add to Uncategorized
+                result["Uncategorized"][month] += amount;
+            }
+        });
+
     return result;
   };
 
@@ -206,7 +232,7 @@ const Categories = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {CATEGORY_OPTIONS[breakdownCategory].map(subcat => (
+                  {[...CATEGORY_OPTIONS[breakdownCategory], "Uncategorized"].map(subcat => (
                     <tr key={subcat}>
                       <td>{subcat}</td>
                       {Months.map(month => (
@@ -224,7 +250,7 @@ const Categories = () => {
                     {Months.map(month => (
                       <td key={month} style={{ fontWeight: 'bold' }}>
                         {Math.round(
-                          CATEGORY_OPTIONS[breakdownCategory].reduce(
+                          [...CATEGORY_OPTIONS[breakdownCategory], "Uncategorized"].reduce(
                             (sum, subcat) => sum + subData[subcat][month],
                             0
                           )
@@ -236,7 +262,7 @@ const Categories = () => {
                         Months.reduce(
                           (total, m) =>
                             total +
-                            CATEGORY_OPTIONS[breakdownCategory].reduce(
+                            [...CATEGORY_OPTIONS[breakdownCategory], "Uncategorized"].reduce(
                               (sum, subcat) => sum + subData[subcat][m],
                               0
                             ),
