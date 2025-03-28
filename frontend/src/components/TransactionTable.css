@@ -5,44 +5,28 @@
   text-align: center;
 }
 
-/* Common button styles */
-.edit-button,
-.delete-button {
-  width: 70px;  /* Fixed width for both buttons */
-  padding: 8px 0;  /* Vertical padding only, width handles horizontal space */
-  margin: 0 4px;  /* Even spacing between buttons */
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;  /* Consistent font size */
-  text-align: center;
+/* Add these styles for the dropdown menu */
+.relative {
+  position: relative;
 }
 
-.edit-button {
-  background-color: #808080;
-  color: white;
+.fixed {
+  position: fixed;
 }
 
-.delete-button {
-  background-color: #E74C3C;
-  color: white;
+.inset-0 {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
 }
 
-.edit-button:hover {
-  background-color: #666666;
+.absolute {
+  position: absolute;
 }
 
-.delete-button:hover {
-  background-color: #c0392b;
-}
-
-.transaction-table td button {
-  margin: 0 2px;
-}
-
-.transaction-table td.actions-cell {
-  min-width: 160px;
-  white-space: nowrap;
+.z-50 {
+  z-index: 50;
 }
 
 /* Modal Styles */
@@ -59,7 +43,7 @@
 }
 
 .modal {
-  background-color: white;
+  background-color: var(--table-background);
   padding: 20px;
   border-radius: 8px;
   min-width: 400px;
@@ -96,7 +80,7 @@
 }
 
 .save-button {
-  background-color: #808080;
+  background-color: var(--primary-green);
   color: white;
   padding: 8px 16px;
   border: none;
@@ -114,7 +98,7 @@
 }
 
 .save-button:hover {
-  background-color: #666666;
+  background-color: var(--primary-green-dark);
 }
 
 .cancel-button:hover {

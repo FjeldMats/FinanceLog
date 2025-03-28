@@ -1,11 +1,19 @@
+:root {
+  --primary-green: #25A25A;     /* Darker base green */
+  --primary-green-dark: #1E884C; /* Even darker green for hover states */
+  --background-gray: #f4f4f4;
+  --table-background: #f9f9f9;
+  --border-color: #ddd;
+}
+
 /* ✅ Navigation Bar Styles */
 .nav-bar {
   display: flex;
   justify-content: center;
   gap: 20px;
-  background-color: #f4f4f4;
+  background-color: var(--background-gray);
   padding: 10px 0;
-  border-bottom: 2px solid #ddd;
+  border-bottom: 2px solid var(--border-color);
 }
 
 .nav-link {
@@ -18,11 +26,11 @@
 }
 
 .nav-link:hover {
-  background-color: #ddd;
+  background-color: var(--border-color);
 }
 
 .active-link {
-  background-color: #36A2EB;
+  background-color: var(--primary-green);
   color: white;
   font-weight: bold;
 }
@@ -57,9 +65,9 @@ body, html {
   max-width: 600px;
   margin: 0 auto;
   padding: 20px;
-  background-color: #f9f9f9;
+  background-color: var(--table-background);
   border-radius: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
 }
 
 .transaction-form {
@@ -82,7 +90,7 @@ body, html {
 }
 
 .transaction-form button {
-  background-color: #36A2EB;
+  background-color: var(--primary-green);
   color: white;
   border: none;
   cursor: pointer;
@@ -90,7 +98,7 @@ body, html {
 }
 
 .transaction-form button:hover {
-  background-color: #2b8dd2;
+  background-color: var(--primary-green-dark);
 }
 
 /* ✅ Transaction List (Table) */
@@ -99,9 +107,9 @@ body, html {
   max-width: 900px;
   margin: 30px auto 0;
   padding: 20px;
-  background-color: #f9f9f9;
+  background-color: var(--table-background);
   border-radius: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
 }
 
 /* ✅ Filter Input & Dropdown Styles for TransactionTable */
@@ -122,7 +130,7 @@ body, html {
 
 .transaction-table-container .filters input:focus,
 .transaction-table-container .filters select:focus {
-  border-color: #36A2EB;
+  border-color: var(--primary-green);
   outline: none;
 }
 
@@ -134,13 +142,13 @@ body, html {
 
 .transaction-table th,
 .transaction-table td {
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   padding: 12px;
   text-align: left;
 }
 
 .transaction-table th {
-  background-color: #36A2EB;
+  background-color: var(--primary-green);
   color: white;
   font-weight: bold;
 }
@@ -214,7 +222,7 @@ body, html {
 
 .login-container button {
   padding: 10px;
-  background-color: #36A2EB;
+  background-color: var(--primary-green);
   color: white;
   border: none;
   border-radius: 5px;
@@ -223,7 +231,7 @@ body, html {
 }
 
 .login-container button:hover {
-  background-color: #2b8dd2;
+  background-color: var(--primary-green-dark);
 }
 
 /* ✅ Categories Page Styles */
@@ -237,6 +245,13 @@ body, html {
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   overflow-x: auto; /* ensure table stays within container */
+}
+
+.categories-container h3 {
+  margin-top: 30px;
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 1.5em;
 }
 
 .year-buttons {
@@ -259,11 +274,13 @@ body, html {
 
 .year-button.active,
 .year-button:hover {
-  background-color: #36A2EB;
+  background-color: var(--primary-green);
   color: white;
 }
 
 .categories-table {
+  margin-bottom: 40px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   width: 100%;
   border-collapse: collapse;
   text-align: center;
@@ -274,7 +291,7 @@ body, html {
 .categories-table th,
 .categories-table td {
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
 }
 
 /* Increase category (first) column width and prevent word wrap */
@@ -290,7 +307,12 @@ body, html {
 }
 
 .categories-table th {
-  background-color: #f4f4f4;
+  background-color: var(--background-gray);
+}
+
+/* Optional: Style the income row differently */
+.categories-table tr:only-child td {
+  background-color: #f8f9fa;
 }
 
 .breakdown-buttons {
@@ -314,17 +336,17 @@ body, html {
 
 .breakdown-button.active,
 .breakdown-button:hover {
-  background-color: #36A2EB;
+  background-color: var(--primary-green);
   color: white;
 }
 
 /* Add these styles for the category buttons */
 .category-button:hover {
-  background-color: #0056b3 !important;
+  background-color: var(--primary-green-dark) !important;
   color: white !important;
 }
 
 .category-button.active {
-  background-color: #007bff !important;
+  background-color: var(--primary-green) !important;
   color: white !important;
 }

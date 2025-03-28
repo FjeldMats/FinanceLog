@@ -1,10 +1,12 @@
 # Build stage
-FROM node:14-alpine as build
+FROM node:20-alpine as build
 WORKDIR /app
 
-# Copy package files and install dependencies using BuildKit cache mount
-COPY package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install --legacy-peer-deps
 
 # Copy the rest of the application code
 COPY . .

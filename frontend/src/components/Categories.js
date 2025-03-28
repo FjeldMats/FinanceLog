@@ -140,139 +140,201 @@ const Categories = () => {
     return result;
   };
 
+  // In the aggregateData function, add a new function for income data
+  const aggregateIncomeData = () => {
+    const result = {};
+    Months.forEach(month => {
+      result[month] = 0;
+    });
+
+    transactions
+      .filter(t => new Date(t.transaction_date).getFullYear() === selectedYear)
+      .forEach(t => {
+        if (t.category.toLowerCase() === 'inntekt') {
+          const date = new Date(t.transaction_date);
+          const month = date.getMonth() + 1;
+          result[month] += parseFloat(t.amount);
+        }
+      });
+    return result;
+  };
+
   const data = aggregateData();
   
   return (
-    // Removed inline margin style from container
-    <div className="categories-container">
-      <h2>Categories</h2>
-      <div className="year-buttons">
+    <div className="p-5 m-5 w-[95%] mx-auto bg-white border border-gray-200 rounded-lg shadow-sm overflow-x-auto">
+      <h2 className="text-2xl font-bold mb-4">Categories</h2>
+      
+      {/* Year Buttons */}
+      <div className="flex flex-wrap justify-center gap-2 mb-4 w-full">
         {availableYears.map(year => (
           <button
             key={year}
             onClick={() => setSelectedYear(year)}
-            className={`year-button ${year === selectedYear ? 'active' : ''}`}
+            className={`px-4 py-2 rounded-md transition-colors duration-200 
+              ${year === selectedYear 
+                ? 'bg-green-600 text-white' 
+                : 'bg-gray-100 hover:bg-green-500 hover:text-white'}`}
           >
             {year}
           </button>
         ))}
       </div>
-      <table className="categories-table" style={{ width: '100%' }}>
-        <thead>
-          <tr>
-            <th>Category</th>
-            {Months.map(month => (
-              <th key={month}>
-                {new Date(0, month - 1).toLocaleString('default', { month: 'long' })}
-              </th>
-            ))}
-            {/* New Total header with separation */}
-            <th style={{ borderLeft: '2px solid black' }}>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {Object.keys(CATEGORY_OPTIONS).map(mainCat => (
-            <tr key={mainCat}>
-              <td>{mainCat}</td>
+
+      {/* Expenses Table */}
+      <h3 className="text-xl font-semibold mt-8 mb-4">Expenses</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full mb-10 border-collapse">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="p-3 text-left font-semibold border border-gray-200 min-w-[150px] whitespace-nowrap">Category</th>
               {Months.map(month => (
-                <td key={month}>
-                  {Math.round(data[mainCat][month]).toLocaleString('fr-FR')}
+                <th key={month} className="p-3 text-center font-semibold border border-gray-200">
+                  {new Date(0, month - 1).toLocaleString('default', { month: 'long' })}
+                </th>
+              ))}
+              <th className="p-3 text-center font-semibold border border-gray-200 border-l-2 border-l-gray-400">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.keys(CATEGORY_OPTIONS).map(mainCat => (
+              <tr key={mainCat} className="hover:bg-gray-50">
+                <td className="p-3 border border-gray-200">{mainCat}</td>
+                {Months.map(month => (
+                  <td key={month} className="p-3 text-right border border-gray-200">
+                    {Math.round(data[mainCat][month]).toLocaleString('fr-FR')}
+                  </td>
+                ))}
+                <td className="p-3 text-right border border-gray-200 border-l-2 border-l-gray-400">
+                  {Math.round(Months.reduce((sum, m) => sum + data[mainCat][m], 0)).toLocaleString('fr-FR')}
+                </td>
+              </tr>
+            ))}
+            <tr className="bg-gray-50 font-semibold">
+              <td className="p-3 border border-gray-200">Total</td>
+              {Months.map(month => (
+                <td key={month} className="p-3 text-right border border-gray-200">
+                  {Math.round(Object.keys(CATEGORY_OPTIONS).reduce((sum, cat) => sum + data[cat][month], 0)).toLocaleString('fr-FR')}
                 </td>
               ))}
-              {/* New Total cell for the category */}
-              <td style={{ borderLeft: '2px solid black' }}>
-                {Math.round(Months.reduce((sum, m) => sum + data[mainCat][m], 0)).toLocaleString('fr-FR')}
+              <td className="p-3 text-right border border-gray-200 border-l-2 border-l-gray-400">
+                {Math.round(Months.reduce((total, m) => total + Object.keys(CATEGORY_OPTIONS).reduce((sum, cat) => sum + data[cat][m], 0), 0)).toLocaleString('fr-FR')}
               </td>
             </tr>
-          ))}
-          {/* New row for monthly totals */}
-          <tr>
-            <td style={{ fontWeight: 'bold' }}>Total</td>
-            {Months.map(month => (
-              <td key={month} style={{ fontWeight: 'bold' }}>
-                {Math.round(Object.keys(CATEGORY_OPTIONS).reduce((sum, cat) => sum + data[cat][month], 0)).toLocaleString('fr-FR')}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Income Table */}
+      <h3 className="text-xl font-semibold mt-8 mb-4">Income</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full mb-10 border-collapse">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="p-3 text-left font-semibold border border-gray-200 min-w-[150px]">Category</th>
+              {Months.map(month => (
+                <th key={month} className="p-3 text-center font-semibold border border-gray-200">
+                  {new Date(0, month - 1).toLocaleString('default', { month: 'long' })}
+                </th>
+              ))}
+              <th className="p-3 text-center font-semibold border border-gray-200 border-l-2 border-l-gray-400">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="hover:bg-gray-50">
+              <td className="p-3 border border-gray-200">Income</td>
+              {Months.map(month => (
+                <td key={month} className="p-3 text-right border border-gray-200">
+                  {Math.round(aggregateIncomeData()[month]).toLocaleString('fr-FR')}
+                </td>
+              ))}
+              <td className="p-3 text-right border border-gray-200 border-l-2 border-l-gray-400">
+                {Math.round(Months.reduce((sum, m) => sum + aggregateIncomeData()[m], 0)).toLocaleString('fr-FR')}
               </td>
-            ))}
-            <td style={{ borderLeft: '2px solid black', fontWeight: 'bold' }}>
-              {Math.round(Months.reduce((total, m) => total + Object.keys(CATEGORY_OPTIONS).reduce((sum, cat) => sum + data[cat][m], 0), 0)).toLocaleString('fr-FR')}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      
-      {/* New dynamic breakdown section */}
-      <h2>Subcategory Breakdown</h2>
-      <div className="breakdown-buttons">
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Subcategory Breakdown */}
+      <h2 className="text-2xl font-bold mt-8 mb-4">Subcategory Breakdown</h2>
+      <div className="flex flex-wrap justify-center gap-2 mb-4 w-full">
         {Object.keys(CATEGORY_OPTIONS).map(mainCat => (
           <button
             key={mainCat}
             onClick={() => setBreakdownCategory(mainCat)}
-            className={`breakdown-button ${breakdownCategory === mainCat ? 'active' : ''}`}
+            className={`px-4 py-2 rounded-md transition-colors duration-200 
+              ${breakdownCategory === mainCat 
+                ? 'bg-green-600 text-white' 
+                : 'bg-gray-100 hover:bg-green-500 hover:text-white'}`}
           >
             {mainCat}
           </button>
         ))}
       </div>
+
       {breakdownCategory && (
         (() => {
           const subData = aggregateSubData(breakdownCategory);
           return (
-            <div>
-              <h3>{breakdownCategory} Subcategories</h3>
-              <table className="categories-table">
-                <thead>
-                  <tr>
-                    <th>Sub Category</th>
-                    {Months.map(month => (
-                      <th key={month}>
-                        {new Date(0, month - 1).toLocaleString('default', { month: 'long' })}
-                      </th>
-                    ))}
-                    <th style={{ borderLeft: '2px solid black' }}>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...CATEGORY_OPTIONS[breakdownCategory], "Uncategorized"].map(subcat => (
-                    <tr key={subcat}>
-                      <td>{subcat}</td>
+            <div className="mt-4">
+              <h3 className="text-xl font-semibold mb-4">{breakdownCategory} Subcategories</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full mb-10 border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="p-3 text-left font-semibold border border-gray-200 min-w-[150px]">Sub Category</th>
                       {Months.map(month => (
-                        <td key={month}>
-                          {Math.round(subData[subcat][month]).toLocaleString('fr-FR')}
+                        <th key={month} className="p-3 text-center font-semibold border border-gray-200">
+                          {new Date(0, month - 1).toLocaleString('default', { month: 'long' })}
+                        </th>
+                      ))}
+                      <th className="p-3 text-center font-semibold border border-gray-200 border-l-2 border-l-gray-400">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...CATEGORY_OPTIONS[breakdownCategory], "Uncategorized"].map(subcat => (
+                      <tr key={subcat} className="hover:bg-gray-50">
+                        <td className="p-3 border border-gray-200">{subcat}</td>
+                        {Months.map(month => (
+                          <td key={month} className="p-3 text-right border border-gray-200">
+                            {Math.round(subData[subcat][month]).toLocaleString('fr-FR')}
+                          </td>
+                        ))}
+                        <td className="p-3 text-right border border-gray-200 border-l-2 border-l-gray-400">
+                          {Math.round(Months.reduce((sum, m) => sum + subData[subcat][m], 0)).toLocaleString('fr-FR')}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="bg-gray-50 font-semibold">
+                      <td className="p-3 border border-gray-200">Total</td>
+                      {Months.map(month => (
+                        <td key={month} className="p-3 text-right border border-gray-200">
+                          {Math.round(
+                            [...CATEGORY_OPTIONS[breakdownCategory], "Uncategorized"].reduce(
+                              (sum, subcat) => sum + subData[subcat][month],
+                              0
+                            )
+                          ).toLocaleString('fr-FR')}
                         </td>
                       ))}
-                      <td style={{ borderLeft: '2px solid black' }}>
-                        {Math.round(Months.reduce((sum, m) => sum + subData[subcat][m], 0)).toLocaleString('fr-FR')}
-                      </td>
-                    </tr>
-                  ))}
-                  <tr>
-                    <td style={{ fontWeight: 'bold' }}>Total</td>
-                    {Months.map(month => (
-                      <td key={month} style={{ fontWeight: 'bold' }}>
+                      <td className="p-3 text-right border border-gray-200 border-l-2 border-l-gray-400">
                         {Math.round(
-                          [...CATEGORY_OPTIONS[breakdownCategory], "Uncategorized"].reduce(
-                            (sum, subcat) => sum + subData[subcat][month],
+                          Months.reduce(
+                            (total, m) =>
+                              total +
+                              [...CATEGORY_OPTIONS[breakdownCategory], "Uncategorized"].reduce(
+                                (sum, subcat) => sum + subData[subcat][m],
+                                0
+                              ),
                             0
                           )
                         ).toLocaleString('fr-FR')}
                       </td>
-                    ))}
-                    <td style={{ borderLeft: '2px solid black', fontWeight: 'bold' }}>
-                      {Math.round(
-                        Months.reduce(
-                          (total, m) =>
-                            total +
-                            [...CATEGORY_OPTIONS[breakdownCategory], "Uncategorized"].reduce(
-                              (sum, subcat) => sum + subData[subcat][m],
-                              0
-                            ),
-                          0
-                        )
-                      ).toLocaleString('fr-FR')}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           );
         })()

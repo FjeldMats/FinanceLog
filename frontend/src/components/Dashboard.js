@@ -53,9 +53,10 @@ const Dashboard = () => {
   const sortedFinancialData = Object.values(financialData).sort((a, b) => new Date(a.date) - new Date(b.date));
 
   return (
-    <div className="dashboard-container">
-      <h1>Expenditure Breakdown</h1>
-      <div className="chart-container">
+    <div className="space-y-8">
+      <h1 className="text-3xl font-bold text-center mb-8">Expenditure Breakdown</h1>
+      
+      <div className="flex flex-nowrap gap-6 justify-center overflow-x-auto min-h-[400px] w-full px-4">
         {availableYears.map((year) => {
           const yearTransactions = transactions.filter((tx) => {
             const date = new Date(tx.transaction_date);
@@ -63,21 +64,22 @@ const Dashboard = () => {
           });
 
           return (
-            <div key={year} style={{ flex: `1 1 ${100 / availableYears.length}%`, maxWidth: '100%' }}>
-              <h2 style={{ textAlign: 'center' }}>{year}</h2>
+            <div key={year} className="flex-shrink-0 w-[400px]">
+              <h2 className="text-xl font-bold text-center mb-4">{year}</h2>
               <StackedChartView transactions={yearTransactions} />
             </div>
           );
         })}
       </div>
 
-      <h1>Expenditure Comparison by Month</h1>
-      <div>
+      <h1 className="text-3xl font-bold text-center mb-8">Expenditure Comparison by Month</h1>
+      <div className="bg-table rounded-lg shadow-md p-6">
+        <h2 className="text-2xl font-bold mb-4">Monthly Summary</h2>
         <BarChartView transactions={transactions} />
       </div>
 
       {/* NEW COMBINED CHART: Income, Expenditure & Difference */}
-      <h1>Income, Expenditure & Savings Over Time</h1>
+      <h1 className="text-3xl font-bold text-center mb-8">Income, Expenditure & Savings Over Time</h1>
       <div className="income-chart-container">
         {sortedFinancialData.length > 0 ? (
           <ResponsiveContainer width="100%" height={350}>
