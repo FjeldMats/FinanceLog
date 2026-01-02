@@ -1,0 +1,6 @@
+# Ansible Inventory File
+# Copy this file to 'hosts' and update with your actual server details
+
+[finance_log]
+YOUR_SERVER_IP ansible_user=YOUR_USERNAME ansible_ssh_private_key_file=~/.ssh/id_rsa
+

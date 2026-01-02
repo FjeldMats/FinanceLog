@@ -1,8 +1,30 @@
+# Python
 backend/env
 backend/app/__pycache__/
 backend/secrets/
+*.pyc
+__pycache__/
+
+# Database
 database/env
 database/data
-deployment/.vault_pass
 *.sql
 backup*.sql
+
+# Environment files
+.env
+frontend/.env
+deployment/.vault_pass
+
+# Ansible
+deployment/ansible/hosts
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

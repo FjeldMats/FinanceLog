@@ -4,8 +4,8 @@ services:
       context: ./backend
     container_name: finance_backend
     environment:
-      DATABASE_URL: postgresql://admin:password@postgres_transactions/finance_tracker
-      SECRET_KEY: your_secret_key
+      DATABASE_URL: ${DATABASE_URL:-postgresql://admin:password@postgres_transactions/finance_tracker}
+      SECRET_KEY: ${SECRET_KEY:-your_secret_key}
     depends_on:
       - database
     restart: always
@@ -17,9 +17,9 @@ services:
       context: ./database
     container_name: postgres_transactions
     environment:
-      POSTGRES_DB: finance_tracker
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ${POSTGRES_DB:-finance_tracker}
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d

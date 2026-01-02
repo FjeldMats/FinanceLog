@@ -2,6 +2,17 @@
 
 A personal finance tracking application for managing income and expenses with visual analytics.
 
+## ⚠️ Security Notice
+
+**Before deploying this application:**
+1. Change all default passwords and credentials
+2. Generate a strong SECRET_KEY for Flask
+3. Use strong database passwords
+4. Never commit `.env` files or credentials to version control
+5. Review and update all configuration files with your specific values
+
+See the [Configuration](#configuration) section for detailed setup instructions.
+
 ## Project Structure
 
 ```
@@ -39,7 +50,7 @@ graph TB
         DEV[Developer Machine]
     end
 
-    subgraph "VM: 10.0.0.29"
+    subgraph "Remote Server VM"
         subgraph "Docker Network: finance_network"
             N[Nginx Container<br/>:80]
             F[Frontend Container<br/>:3000]
@@ -48,7 +59,7 @@ graph TB
         end
 
         V[Docker Volumes<br/>postgres_data]
-        P[Project Files<br/>/home/mats/FinanceLog]
+        P[Project Files<br/>~/FinanceLog]
     end
 
     U -->|HTTP :80| N
@@ -206,9 +217,50 @@ docker compose up -d
 
 ## Configuration
 
-- **Backend API URL**: Set in `frontend/.env` as `REACT_APP_API_URL`
-- **Database credentials**: Configured in `docker-compose.yml`
-- **Deployment target**: Set in `deployment/ansible/hosts`
+### Initial Setup
+
+**⚠️ IMPORTANT: Change all default credentials before deployment!**
+
+1. **Frontend Configuration:**
+   ```bash
+   cp frontend/.env.example frontend/.env
+   # Edit frontend/.env and set REACT_APP_API_URL to your server IP/domain
+   ```
+
+2. **Docker Environment:**
+   ```bash
+   cp .env.example .env
+   # Edit .env and set secure database credentials and SECRET_KEY
+   ```
+
+3. **Deployment Configuration:**
+   ```bash
+   cp deployment/ansible/hosts.example deployment/ansible/hosts
+   # Edit deployment/ansible/hosts and set your server IP and username
+   ```
+
+4. **Generate Secure SECRET_KEY:**
+   ```bash
+   python -c "import secrets; print(secrets.token_hex(32))"
+   ```
+
+### Environment Variables
+
+**Frontend (`frontend/.env`):**
+- `REACT_APP_API_URL` - Backend API URL (e.g., `http://your-server-ip/api`)
+- `GENERATE_SOURCEMAP` - Set to `false` for production
+
+**Backend (`.env` or `docker-compose.yml`):**
+- `DATABASE_URL` - PostgreSQL connection string
+- `SECRET_KEY` - Flask secret key (use a strong random value)
+- `POSTGRES_DB` - Database name
+- `POSTGRES_USER` - Database username
+- `POSTGRES_PASSWORD` - Database password (use a strong password)
+
+**Deployment (`deployment/ansible/hosts`):**
+- Server IP address
+- SSH username
+- SSH private key path
 
 ## Common Tasks
 

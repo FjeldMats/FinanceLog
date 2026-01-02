@@ -3,7 +3,7 @@
   become: true
 
   vars:
-    project_dir: /home/mats/FinanceLog
+    project_dir: "{{ ansible_env.HOME }}/FinanceLog"
 
   tasks:
     # --- Docker setup section ---
@@ -80,8 +80,8 @@
       file:
         path: "{{ project_dir }}"
         state: directory
-        owner: mats
-        group: mats
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
         mode: '0755'
 
     - name: Copy project files to the server
@@ -99,8 +99,8 @@
       file:
         path: "{{ project_dir }}"
         state: directory
-        owner: mats
-        group: mats
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
         recurse: yes
 
     - name: Check for docker-compose.yml file
