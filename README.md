@@ -124,6 +124,28 @@ To create a new backup:
 docker exec postgres_transactions pg_dump -U admin finance_tracker > ~/FinanceLog_Backups/backup_$(date +%Y%m%d).sql
 ```
 
+## Future Improvements
+
+### Authentication & Multi-User Support
+- [ ] Add login screen
+- [ ] Implement user authentication system
+- [ ] Separate transaction data per user
+- [ ] Store session data (Redis or database-backed sessions)
+- [ ] Decide on deployment strategy with authentication (OAuth, JWT, etc.)
+
+### Features
+- [ ] Budget tracking and alerts
+- [ ] Recurring transaction support
+- [ ] Export data to CSV/Excel
+- [ ] Mobile responsive improvements
+- [ ] Dark mode toggle
+
+### Infrastructure
+- [ ] Automated database backups
+- [ ] CI/CD pipeline
+- [ ] Monitoring and logging
+- [ ] HTTPS/SSL configuration
+
 ## Notes
 
 - Transactions with positive amounts are income, negative amounts are expenses
