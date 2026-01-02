@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   database:
-    image: postgres:latest
+    image: postgres:17
     container_name: postgres_transactions
     ports:
       - "5432:5432" # Map PostgreSQL to host port 5432

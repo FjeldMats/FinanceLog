@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Chart as ChartJS,
   BarElement,
@@ -13,16 +13,6 @@ import {
 } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
 
-// Import the categories from your existing configuration
-const CATEGORY_OPTIONS = {
-  Hus: ['Lån Storebrand', 'Eindomskatt (moss kommune)', 'Renovasjon (moss kommune)', 'Gjensidige forsikring hus'],
-  'Faste utgifter': ['Telia telefon', 'Telia internett/Tv', 'Strøm'],
-  Personelig: ['Spenst', 'Klær', 'Sparing'],
-  Mat: ['Rema 1000', 'Kiwi', 'Spar', 'Meny', 'Bunnpris', 'Willis', 'Nordby', 'Obs', 'Div butikk'],
-  Transport: ['Bensin', 'Toyota lån', 'Parkering', 'Gejensidige forsikring', 'Service', 'Bompenger'],
-  Andre: ['Gaver', 'Hage', 'Andre']
-};
-
 ChartJS.register(
   BarElement,
   CategoryScale,
@@ -35,8 +25,8 @@ ChartJS.register(
   LineController
 );
 
-const BarChartView = ({ transactions }) => {
-  const [selectedCategory, setSelectedCategory] = useState('All');
+const IncomeBarChartView = ({ transactions }) => {
+  const [selectedSubcategory, setSelectedSubcategory] = useState('All');
   const [chartKey, setChartKey] = useState(0);
 
   // Force chart re-render on window resize (including zoom)
@@ -56,23 +46,28 @@ const BarChartView = ({ transactions }) => {
     };
   }, []);
 
-  const filterTransactionsByCategory = (transactions, category) => {
-    if (category === 'All') return transactions;
-    
-    return transactions.filter(tx => {
-      // Check if transaction matches main category
-      if (tx.category === category) return true;
-      // Check if transaction's subcategory matches any in the category's subcategories
-      if (tx.subcategory && CATEGORY_OPTIONS[category]) {
-        return CATEGORY_OPTIONS[category].some(sub => 
-          sub.toLowerCase() === tx.subcategory.toLowerCase()
-        );
-      }
-      return false;
-    });
-  };
+  // Filter only income transactions
+  const incomeTransactions = useMemo(() => {
+    return transactions.filter(tx => tx.category.toLowerCase() === 'inntekt');
+  }, [transactions]);
 
-  const filteredTransactions = filterTransactionsByCategory(transactions, selectedCategory);
+  // Get unique subcategories from income transactions
+  const subcategories = useMemo(() => {
+    const subs = new Set();
+    incomeTransactions.forEach(tx => {
+      if (tx.subcategory) {
+        subs.add(tx.subcategory);
+      }
+    });
+    return Array.from(subs).sort();
+  }, [incomeTransactions]);
+
+  // Filter by selected subcategory
+  const filteredTransactions = useMemo(() => {
+    if (selectedSubcategory === 'All') return incomeTransactions;
+    return incomeTransactions.filter(tx => tx.subcategory === selectedSubcategory);
+  }, [incomeTransactions, selectedSubcategory]);
+
   const groupedData = {};
   const monthlyAverages = {};
 
@@ -93,7 +88,7 @@ const BarChartView = ({ transactions }) => {
 
   // Extract years from the data
   const years = Array.from(
-    new Set(transactions.map((tx) => new Date(tx.transaction_date).getFullYear()))
+    new Set(incomeTransactions.map((tx) => new Date(tx.transaction_date).getFullYear()))
   ).sort();
 
   // Get current date for comparison
@@ -105,65 +100,35 @@ const BarChartView = ({ transactions }) => {
   allMonths.forEach((month, monthIndex) => {
     const monthValues = years
       .filter(year => {
-        // Include year if:
-        // 1. It's a past year, or
-        // 2. It's current year but the month is not in the future
         return year < currentYear || (year === currentYear && monthIndex <= currentMonth);
       })
       .map(year => groupedData[`${month} ${year}`] || 0);
 
     const sum = monthValues.reduce((acc, val) => acc + val, 0);
-    // Only divide by the number of valid years we actually found data for
     monthlyAverages[month] = monthValues.length > 0 ? sum / monthValues.length : 0;
   });
 
-  // Define distinct colors and patterns for each year
+  // Define distinct colors for each year
   const colorPalette = [
     {
-      backgroundColor: 'rgba(255, 99, 132, 0.8)',  // Red
-      borderColor: 'rgb(255, 99, 132)',
-      pattern: {
-        type: 'line',
-        rotation: -45,
-        lineWidth: 2,
-        spacing: 6
-      }
+      backgroundColor: 'rgba(34, 197, 94, 0.8)',  // Green
+      borderColor: 'rgb(34, 197, 94)',
     },
     {
-      backgroundColor: 'rgba(54, 162, 235, 0.8)',  // Blue
-      borderColor: 'rgb(54, 162, 235)',
-      pattern: {
-        type: 'dot',
-        spacing: 6
-      }
+      backgroundColor: 'rgba(59, 130, 246, 0.8)',  // Blue
+      borderColor: 'rgb(59, 130, 246)',
     },
     {
-      backgroundColor: 'rgba(75, 192, 192, 0.8)',  // Green
-      borderColor: 'rgb(75, 192, 192)',
-      pattern: {
-        type: 'line',
-        rotation: 45,
-        lineWidth: 2,
-        spacing: 6
-      }
+      backgroundColor: 'rgba(168, 85, 247, 0.8)',  // Purple
+      borderColor: 'rgb(168, 85, 247)',
     },
     {
-      backgroundColor: 'rgba(255, 206, 86, 0.8)',  // Yellow
-      borderColor: 'rgb(255, 206, 86)',
-      pattern: {
-        type: 'line',
-        rotation: -45,
-        lineWidth: 2,
-        spacing: 6
-      }
+      backgroundColor: 'rgba(236, 72, 153, 0.8)',  // Pink
+      borderColor: 'rgb(236, 72, 153)',
     },
     {
-      backgroundColor: 'rgba(153, 102, 255, 0.8)',  // Purple
-      borderColor: 'rgb(153, 102, 255)',
-      pattern: {
-        type: 'dot',
-        spacing: 6
-      }
+      backgroundColor: 'rgba(251, 146, 60, 0.8)',  // Orange
+      borderColor: 'rgb(251, 146, 60)',
     }
   ];
 
@@ -182,24 +147,25 @@ const BarChartView = ({ transactions }) => {
       backgroundColor: yearStyles[year].backgroundColor,
       borderColor: yearStyles[year].borderColor,
       borderWidth: 1,
-      pattern: yearStyles[year].pattern
     })),
     {
       type: 'line',
       label: 'Monthly Average',
       data: allMonths.map((month) => monthlyAverages[month]),
-      borderColor: 'rgba(255, 0, 0, 0.8)',  // Red line
-      backgroundColor: 'rgba(255, 0, 0, 0.1)',
+      borderColor: 'rgba(34, 197, 94, 0.8)',  // Green line
+      backgroundColor: 'rgba(34, 197, 94, 0.1)',
       borderWidth: 2,
-      pointBackgroundColor: 'rgba(255, 0, 0, 0.8)',  // Red points
+      pointBackgroundColor: 'rgba(34, 197, 94, 0.8)',
       pointRadius: 4,
       pointHoverRadius: 6,
-      borderDash: [5, 5],  // Creates dotted/dashed line
+      borderDash: [5, 5],
       fill: false,
-      tension: 0.4,  // Slight curve in the line
-      order: 0  // Ensure line is drawn on top of bars
+      tension: 0.4,
+      order: 0
     }
   ];
+
+
 
   const chartData = {
     labels: allMonths,
@@ -264,7 +230,7 @@ const BarChartView = ({ transactions }) => {
       <div style={{ width: '100%', height: '400px', margin: '20px 0' }}>
         <Chart key={chartKey} type="bar" data={chartData} options={options} />
       </div>
-      
+
       <div className="category-buttons" style={{
         display: 'flex',
         justifyContent: 'center',
@@ -273,12 +239,12 @@ const BarChartView = ({ transactions }) => {
         margin: '20px 0'
       }}>
         <button
-          className={`category-button ${selectedCategory === 'All' ? 'active' : ''}`}
-          onClick={() => setSelectedCategory('All')}
+          className={`category-button ${selectedSubcategory === 'All' ? 'active' : ''}`}
+          onClick={() => setSelectedSubcategory('All')}
           style={{
             padding: '8px 12px',
-            backgroundColor: selectedCategory === 'All' ? '#007bff' : '#f0f0f0',
-            color: selectedCategory === 'All' ? 'white' : 'black',
+            backgroundColor: selectedSubcategory === 'All' ? '#22c55e' : '#f0f0f0',
+            color: selectedSubcategory === 'All' ? 'white' : 'black',
             border: '1px solid #ccc',
             borderRadius: '4px',
             cursor: 'pointer',
@@ -287,22 +253,22 @@ const BarChartView = ({ transactions }) => {
         >
           All
         </button>
-        {Object.keys(CATEGORY_OPTIONS).map(category => (
+        {subcategories.map(subcategory => (
           <button
-            key={category}
-            className={`category-button ${selectedCategory === category ? 'active' : ''}`}
-            onClick={() => setSelectedCategory(category)}
+            key={subcategory}
+            className={`category-button ${selectedSubcategory === subcategory ? 'active' : ''}`}
+            onClick={() => setSelectedSubcategory(subcategory)}
             style={{
               padding: '8px 12px',
-              backgroundColor: selectedCategory === category ? '#007bff' : '#f0f0f0',
-              color: selectedCategory === category ? 'white' : 'black',
+              backgroundColor: selectedSubcategory === subcategory ? '#22c55e' : '#f0f0f0',
+              color: selectedSubcategory === subcategory ? 'white' : 'black',
               border: '1px solid #ccc',
               borderRadius: '4px',
               cursor: 'pointer',
               transition: 'background-color 0.3s'
             }}
           >
-            {category}
+            {subcategory}
           </button>
         ))}
       </div>
@@ -310,4 +276,4 @@ const BarChartView = ({ transactions }) => {
   );
 };
 
-export default BarChartView;
+export default IncomeBarChartView;

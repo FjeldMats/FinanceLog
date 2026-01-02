@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { addTransaction, deleteTransaction } from '../api';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 const CATEGORY_OPTIONS = {
   Hus: ['Lån Storebrand', 'Eindomskatt (moss kommune)', 'Renovasjon (moss kommune)', 'Gjensidige forsikring hus'],
@@ -32,6 +34,9 @@ const TransactionForm = () => {
     amount: '',
   });
 
+  // State for DatePicker (needs to be a Date object)
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
   const [transactions, setTransactions] = useState([]); // Store added transactions
 
   const handleCategoryChange = (event) => {
@@ -40,6 +45,13 @@ const TransactionForm = () => {
 
   const handleSubcategoryChange = (event) => {
     setNewTransaction({ ...newTransaction, subcategory: event.target.value });
+  };
+
+  const handleDateChange = (date) => {
+    setSelectedDate(date);
+    // Convert Date object to YYYY-MM-DD format for the transaction
+    const formattedDate = date.toISOString().split('T')[0];
+    setNewTransaction({ ...newTransaction, transaction_date: formattedDate });
   };
 
   const handleSubmit = async (event) => {
@@ -56,6 +68,8 @@ const TransactionForm = () => {
       setTransactions([response, ...transactions]); // Add new transaction to local state
 
       // Reset form but keep current date
+      const today = new Date();
+      setSelectedDate(today);
       setNewTransaction({
         transaction_date: getCurrentDate(),
         category: '',
@@ -85,12 +99,16 @@ const TransactionForm = () => {
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
             <label className="block font-medium mb-1">Date</label>
-            <input
-              type="date"
-              value={newTransaction.transaction_date}
-              onChange={(e) => setNewTransaction({ ...newTransaction, transaction_date: e.target.value })}
-              required
+            <DatePicker
+              selected={selectedDate}
+              onChange={handleDateChange}
+              dateFormat="dd/MM/yyyy"
               className="input-field w-full"
+              wrapperClassName="w-full"
+              showMonthDropdown
+              showYearDropdown
+              dropdownMode="select"
+              required
             />
           </div>
           <div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import StackedChartView from './StackedChartView';
 import BarChartView from './BarChartView';
+import IncomeBarChartView from './IncomeBarChartView';
 import { Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ComposedChart, CartesianGrid } from 'recharts';
 import { getTransactions } from '../api';
 import '../Dashboard.css';
@@ -54,33 +55,41 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold text-center mb-8">Expenditure Breakdown</h1>
-      
-      <div className="flex flex-nowrap gap-6 justify-center overflow-x-auto min-h-[400px] w-full px-4">
-        {availableYears.map((year) => {
-          const yearTransactions = transactions.filter((tx) => {
-            const date = new Date(tx.transaction_date);
-            return date.getFullYear() === year;
-          });
+      {/* Expenditure Breakdown Card */}
+      <div className="bg-table rounded-lg shadow-md p-6">
+        <h2 className="text-2xl font-bold mb-6">Expenditure Breakdown</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
+          {availableYears.map((year) => {
+            const yearTransactions = transactions.filter((tx) => {
+              const date = new Date(tx.transaction_date);
+              return date.getFullYear() === year;
+            });
 
-          return (
-            <div key={year} className="flex-shrink-0 w-[400px]">
-              <h2 className="text-xl font-bold text-center mb-4">{year}</h2>
-              <StackedChartView transactions={yearTransactions} />
-            </div>
-          );
-        })}
+            return (
+              <div key={year} className="w-full">
+                <h3 className="text-xl font-bold text-center mb-4">{year}</h3>
+                <StackedChartView transactions={yearTransactions} />
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <h1 className="text-3xl font-bold text-center mb-8">Expenditure Comparison by Month</h1>
+      {/* Monthly Income Summary Card */}
       <div className="bg-table rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-bold mb-4">Monthly Summary</h2>
+        <h2 className="text-2xl font-bold mb-4">Monthly Income Summary</h2>
+        <IncomeBarChartView transactions={transactions} />
+      </div>
+
+      {/* Monthly Expenditure Summary Card */}
+      <div className="bg-table rounded-lg shadow-md p-6">
+        <h2 className="text-2xl font-bold mb-4">Monthly Expenditure Summary</h2>
         <BarChartView transactions={transactions} />
       </div>
 
-      {/* NEW COMBINED CHART: Income, Expenditure & Difference */}
-      <h1 className="text-3xl font-bold text-center mb-8">Income, Expenditure & Savings Over Time</h1>
-      <div className="income-chart-container">
+      {/* Income, Expenditure & Savings Over Time Card */}
+      <div className="bg-table rounded-lg shadow-md p-6">
+        <h2 className="text-2xl font-bold mb-4">Income, Expenditure & Savings Over Time</h2>
         {sortedFinancialData.length > 0 ? (
           <ResponsiveContainer width="100%" height={350}>
             <ComposedChart data={sortedFinancialData}>

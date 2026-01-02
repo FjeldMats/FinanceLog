@@ -1,9 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 import { getTransactions, deleteTransaction, updateTransaction } from '../api';
 import { DotsVerticalIcon } from '@heroicons/react/solid';
 
-const formatNumber = (num) => {
-  return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num) + ' NOK';
+const formatNumber = (num, isIncome = false) => {
+  const absNum = Math.abs(num);
+  const formattedNum = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(absNum);
+  return isIncome ? `${formattedNum} NOK` : `-${formattedNum} NOK`;
 };
 
 const formatDate = (dateString) => {
@@ -11,13 +14,88 @@ const formatDate = (dateString) => {
   return isNaN(date) ? 'Invalid Date' : date.toLocaleDateString('nb-NO');
 };
 
+// Get ISO week number (ISO 8601)
+const getWeekNumber = (date) => {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+};
+
 const ActionMenu = ({ transaction, onEdit, onDelete }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, placement: 'bottom' });
+  const buttonRef = React.useRef(null);
+
+  const handleToggle = () => {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+
+      // Calculate position for fixed positioning
+      const left = rect.right - 192; // 192px = w-48 (12rem)
+      let top;
+      let placement;
+
+      // If less than 150px space below, show menu above
+      if (spaceBelow < 150 && spaceAbove > spaceBelow) {
+        top = rect.top - 8; // Position above, with 8px margin
+        placement = 'top';
+      } else {
+        top = rect.bottom + 8; // Position below, with 8px margin
+        placement = 'bottom';
+      }
+
+      setMenuPosition({ top, left, placement });
+    }
+    setIsOpen(!isOpen);
+  };
+
+  const menuContent = isOpen ? (
+    <>
+      <div
+        className="fixed inset-0 z-40"
+        onClick={() => setIsOpen(false)}
+      />
+      <div
+        className="fixed w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
+        style={{
+          top: menuPosition.placement === 'top' ? 'auto' : `${menuPosition.top}px`,
+          bottom: menuPosition.placement === 'top' ? `${window.innerHeight - menuPosition.top}px` : 'auto',
+          left: `${menuPosition.left}px`,
+        }}
+      >
+        <div className="py-1" role="menu">
+          <button
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            onClick={() => {
+              onEdit(transaction);
+              setIsOpen(false);
+            }}
+          >
+            Edit
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+            onClick={() => {
+              onDelete(transaction);
+              setIsOpen(false);
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </>
+  ) : null;
 
   return (
     <div className="relative">
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
+      <button
+        ref={buttonRef}
+        onClick={handleToggle}
         className="p-1 rounded-full hover:bg-gray-100 focus:outline-none"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
@@ -25,36 +103,7 @@ const ActionMenu = ({ transaction, onEdit, onDelete }) => {
         </svg>
       </button>
 
-      {isOpen && (
-        <>
-          <div 
-            className="fixed inset-0 z-10" 
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-            <div className="py-1" role="menu">
-              <button
-                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                onClick={() => {
-                  onEdit(transaction);
-                  setIsOpen(false);
-                }}
-              >
-                Edit
-              </button>
-              <button
-                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                onClick={() => {
-                  onDelete(transaction);
-                  setIsOpen(false);
-                }}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      {menuContent && ReactDOM.createPortal(menuContent, document.body)}
     </div>
   );
 };
@@ -99,15 +148,15 @@ const TransactionTable = () => {
     return Array.from(new Set(cats));
   }, [transactions]);
 
-  // Helper function to generate month-year options between two dates
+  // Helper function to generate month-year options between two dates (latest first)
   const generateMonthYearOptions = (minDate, maxDate) => {
     let options = [];
-    let current = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
-    let last = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
-    while (current <= last) {
+    let current = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
+    let last = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+    while (current >= last) {
       const option = current.toLocaleString('en-US', { month: 'short', year: 'numeric' });
       options.push(option);
-      current.setMonth(current.getMonth() + 1);
+      current.setMonth(current.getMonth() - 1);
     }
     return options;
   };
@@ -124,7 +173,9 @@ const TransactionTable = () => {
   // Filter transactions based on the filters
   const filteredTransactions = transactions.filter(tx => {
     const matchesSearch =
-      searchText === '' || (tx.description && tx.description.toLowerCase().includes(searchText.toLowerCase()));
+      searchText === '' ||
+      (tx.description && tx.description.toLowerCase().includes(searchText.toLowerCase())) ||
+      (tx.subcategory && tx.subcategory.toLowerCase().includes(searchText.toLowerCase()));
     const matchesCategory = categoryFilter === '' || tx.category === categoryFilter;
     let matchesMonthYear = true;
     if (monthYearFilter !== '') {
@@ -151,9 +202,9 @@ const TransactionTable = () => {
       <h2>Transactions</h2>
       {/* Filter UI */}
       <div className="flex gap-4 mb-6">
-        <input 
-          type="text" 
-          placeholder="Search description..."
+        <input
+          type="text"
+          placeholder="Search description or subcategory..."
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
           className="input-field flex-1"
@@ -179,9 +230,10 @@ const TransactionTable = () => {
           ))}
         </select>
       </div>
+
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
-          <thead>
+          <thead className="sticky top-0 z-10 shadow-md">
             <tr className="bg-primary text-white">
               <th className="p-3 text-left">Date</th>
               <th className="p-3 text-left">Category</th>
@@ -192,24 +244,84 @@ const TransactionTable = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filteredTransactions.map((tx) => (
-              <tr key={tx.id} className="hover:bg-gray-50">
-                <td className="p-3">{formatDate(tx.transaction_date)}</td>
-                <td className="p-3">{tx.category}</td>
-                <td className="p-3">{tx.subcategory}</td>
-                <td className="p-3">{tx.description}</td>
-                <td className={`p-3 ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatNumber(tx.amount)}
-                </td>
-                <td className="p-3">
-                  <ActionMenu
-                    transaction={tx}
-                    onEdit={() => setEditingTransaction(tx)}
-                    onDelete={() => setTransactionToDelete(tx)}
-                  />
-                </td>
-              </tr>
-            ))}
+            {filteredTransactions.map((tx, index) => {
+              const isIncome = tx.category.toLowerCase() === 'inntekt';
+              const currentDate = new Date(tx.transaction_date);
+              const currentMonth = currentDate.getMonth();
+              const currentYear = currentDate.getFullYear();
+              const currentWeek = getWeekNumber(currentDate);
+
+              // Check if this is a new week, month or year compared to previous transaction
+              // For the first transaction, always show year, month, and week
+              let showWeekSeparator = false;
+              let showMonthSeparator = false;
+              let showYearSeparator = false;
+
+              if (index === 0) {
+                // First transaction: show year, month, and week
+                showYearSeparator = true;
+                showMonthSeparator = true;
+                showWeekSeparator = true;
+              } else {
+                const prevDate = new Date(filteredTransactions[index - 1].transaction_date);
+                const prevMonth = prevDate.getMonth();
+                const prevYear = prevDate.getFullYear();
+                const prevWeek = getWeekNumber(prevDate);
+
+                if (currentYear !== prevYear) {
+                  showYearSeparator = true;
+                  showMonthSeparator = true;
+                  showWeekSeparator = true;
+                } else if (currentMonth !== prevMonth) {
+                  showMonthSeparator = true;
+                  showWeekSeparator = true;
+                } else if (currentWeek !== prevWeek) {
+                  showWeekSeparator = true;
+                }
+              }
+
+              return (
+                <React.Fragment key={tx.id}>
+                  {showYearSeparator && (
+                    <tr className="bg-green-100 border-t-4 border-primary">
+                      <td colSpan="6" className="p-2 text-center font-bold text-green-900">
+                        Year: {currentYear}
+                      </td>
+                    </tr>
+                  )}
+                  {showMonthSeparator && (
+                    <tr className="bg-gray-200 border-t-2 border-gray-400">
+                      <td colSpan="6" className="p-2 text-center font-semibold text-gray-700">
+                        {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                      </td>
+                    </tr>
+                  )}
+                  {showWeekSeparator && (
+                    <tr className="bg-green-50 border-t border-green-300">
+                      <td colSpan="6" className="p-1.5 text-center text-sm font-medium text-green-700">
+                        Week {currentWeek}
+                      </td>
+                    </tr>
+                  )}
+                  <tr className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-green-50 transition-colors`}>
+                    <td className="p-3">{formatDate(tx.transaction_date)}</td>
+                    <td className="p-3">{tx.category}</td>
+                    <td className="p-3">{tx.subcategory}</td>
+                    <td className="p-3">{tx.description}</td>
+                    <td className={`p-3 font-semibold ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
+                      {formatNumber(tx.amount, isIncome)}
+                    </td>
+                    <td className="p-3">
+                      <ActionMenu
+                        transaction={tx}
+                        onEdit={() => setEditingTransaction(tx)}
+                        onDelete={() => setTransactionToDelete(tx)}
+                      />
+                    </td>
+                  </tr>
+                </React.Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>

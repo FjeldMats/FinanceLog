@@ -1,5 +1,5 @@
 # Use the official PostgreSQL image
-FROM postgres:latest
+FROM postgres:17
 
 # Copy initialization SQL script
 COPY init/ /docker-entrypoint-initdb.d/

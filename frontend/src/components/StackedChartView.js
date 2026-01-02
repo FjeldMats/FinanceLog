@@ -68,21 +68,39 @@ const CustomTooltip = ({ active, payload }) => {
   return null;
 };
 
+// Helper function to format amount in thousands
+const formatAmountInK = (amount) => {
+  const thousands = amount / 1000;
+  return `${Math.round(thousands)}k kr`;
+};
+
 // Custom content renderer for Treemap
 const CustomTreeMapContent = ({ root, depth, x, y, width, height, index, name }) => {
   if (depth === 1) {
-    const percentage = root.children[index].percentage.toFixed(1) + "%";
+    const percentageValue = root.children[index].percentage;
+    const percentage = percentageValue.toFixed(1) + "%";
+    const amount = root.children[index].size;
+    const amountText = formatAmountInK(amount);
+    const showDetails = percentageValue >= 5; // Only show details if >= 5%
+
     return (
       <g transform={`translate(${x},${y})`}>
         <rect width={width} height={height} fill={root.children[index].color} stroke="#fff" />
-        {width > 60 && height > 30 && (
+        {width > 60 && height > 40 && (
           <>
-            <text x={width / 2} y={height / 2 - 5} textAnchor="middle" fill="#fff" fontSize={14}>
+            <text x={width / 2} y={height / 2 - 15} textAnchor="middle" fill="#fff" fontSize={14}>
               {name}
             </text>
-            <text x={width / 2} y={height / 2 + 15} textAnchor="middle" fill="#fff" fontSize={12}>
-              ({percentage})
-            </text>
+            {showDetails && (
+              <>
+                <text x={width / 2} y={height / 2 + 5} textAnchor="middle" fill="#fff" fontSize={13}>
+                  {amountText}
+                </text>
+                <text x={width / 2} y={height / 2 + 22} textAnchor="middle" fill="#fff" fontSize={11} opacity={0.9}>
+                  ({percentage})
+                </text>
+              </>
+            )}
           </>
         )}
       </g>

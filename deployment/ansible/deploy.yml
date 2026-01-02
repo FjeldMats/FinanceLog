@@ -1,35 +1,87 @@
-- name: Deploy FinanceLog Application
+- name: Setup Docker and Deploy FinanceLog Application
   hosts: all
   become: true
 
   vars:
-    project_dir: ./FinanceLog
+    project_dir: /home/mats/FinanceLog
 
   tasks:
-    - name: Ensure finance_user exists
-      user:
-        name: finance_user
-        state: present
-        shell: /bin/bash
+    # --- Docker setup section ---
 
-    - name: Ensure Docker is installed
+    - name: Ensure old docker.io package is absent
       apt:
         name: docker.io
+        state: absent
+      ignore_errors: true
+
+    - name: Ensure old docker-buildx package is absent
+      apt:
+        name: docker-buildx
+        state: absent
+      ignore_errors: true
+
+    - name: Add Docker official GPG key
+      shell: |
+        mkdir -p /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+      args:
+        creates: /etc/apt/keyrings/docker.gpg
+
+    - name: Add Docker repository
+      shell: |
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list
+      args:
+        creates: /etc/apt/sources.list.d/docker.list
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Ensure docker-ce, docker-compose-plugin installed
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
         state: present
         update_cache: yes
 
-    - name: Ensure Docker Compose is installed
-      apt:
-        name: docker-compose
-        state: present
-        update_cache: yes
+    # --- Health checks for Docker and Compose ---
+
+    - name: Verify Docker Engine is installed
+      command: docker --version
+      register: docker_version_output
+      failed_when: docker_version_output.rc != 0
+      changed_when: false
+
+    - name: Verify Docker Compose is installed
+      command: docker compose version
+      register: docker_compose_version_output
+      failed_when: docker_compose_version_output.rc != 0
+      changed_when: false
+
+    # --- Restart Docker to ensure clean daemon state ---
+
+    - name: Restart Docker service before deploying
+      systemd:
+        name: docker
+        state: restarted
+        enabled: yes
+      register: docker_service_restart
+      retries: 3
+      delay: 5
+      until: docker_service_restart is succeeded
+
+    # --- FinanceLog Project Deployment ---
 
     - name: Create project directory
       file:
         path: "{{ project_dir }}"
         state: directory
-        owner: finance_user
-        group: finance_user
+        owner: mats
+        group: mats
         mode: '0755'
 
     - name: Copy project files to the server
@@ -47,15 +99,21 @@
       file:
         path: "{{ project_dir }}"
         state: directory
-        owner: finance_user
-        group: finance_user
+        owner: mats
+        group: mats
         recurse: yes
 
+    - name: Check for docker-compose.yml file
+      stat:
+        path: "{{ project_dir }}/docker-compose.yml"
+      register: docker_compose_file
+
     - name: Build backend Docker image
+      when: docker_compose_file.stat.exists
       environment:
         DOCKER_BUILDKIT: "1"
         COMPOSE_DOCKER_CLI_BUILD: "1"
-      command: docker-compose build --pull backend
+      command: docker compose build --pull backend
       args:
         chdir: "{{ project_dir }}"
       async: 600
@@ -63,30 +121,32 @@
       register: backend_build
 
     - name: Build frontend Docker image
+      when: docker_compose_file.stat.exists
       environment:
         DOCKER_BUILDKIT: "1"
         COMPOSE_DOCKER_CLI_BUILD: "1"
-      command: docker-compose build frontend
+      command: docker compose build frontend
       args:
         chdir: "{{ project_dir }}"
       register: frontend_build
 
-    - name: Check for docker-compose.yml file
-      stat:
-        path: "{{ project_dir }}/docker-compose.yml"
-      register: docker_compose_file
-
-    - name: (Optional) Build database Docker image
-      command: docker-compose build --pull database
+    - name: Build database Docker image
+      when: docker_compose_file.stat.exists
+      environment:
+        DOCKER_BUILDKIT: "1"
+        COMPOSE_DOCKER_CLI_BUILD: "1"
+      command: docker compose build --pull database
       args:
         chdir: "{{ project_dir }}"
 
-    - name: Stop existing application using Docker Compose
-      command: docker-compose down
+    - name: Stop existing application (Docker Compose Down)
+      when: docker_compose_file.stat.exists
+      command: docker compose down
       args:
         chdir: "{{ project_dir }}"
 
     - name: Start application using Docker Compose
-      command: docker-compose up -d
+      when: docker_compose_file.stat.exists
+      command: docker compose up -d
       args:
         chdir: "{{ project_dir }}"
