@@ -115,6 +115,15 @@ docker compose up -d
 **Frontend:**
 - `REACT_APP_API_URL` - Backend API URL (e.g., `http://10.0.0.29:5000/api`)
 
+## Database Backups
+
+Database backups are stored in: `~/FinanceLog_Backups/`
+
+To create a new backup:
+```bash
+docker exec postgres_transactions pg_dump -U admin finance_tracker > ~/FinanceLog_Backups/backup_$(date +%Y%m%d).sql
+```
+
 ## Notes
 
 - Transactions with positive amounts are income, negative amounts are expenses

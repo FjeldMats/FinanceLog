@@ -1,4 +1,8 @@
 backend/env
 backend/app/__pycache__/
+backend/secrets/
 database/env
 database/data
+deployment/.vault_pass
+*.sql
+backup*.sql
