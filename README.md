@@ -34,11 +34,11 @@ graph LR
     C -->|API Calls| D[Flask Backend :5000]
     D -->|SQL| E[PostgreSQL :5432]
 
-    style A fill:#e1f5ff
-    style B fill:#fff4e1
-    style C fill:#e8f5e9
-    style D fill:#f3e5f5
-    style E fill:#fce4ec
+    style A fill:#1e3a5f,stroke:#4a90e2,color:#fff
+    style B fill:#5f4a1e,stroke:#e2a84a,color:#fff
+    style C fill:#1e5f3a,stroke:#4ae28a,color:#fff
+    style D fill:#5f1e5a,stroke:#e24ad4,color:#fff
+    style E fill:#5f1e2e,stroke:#e24a6a,color:#fff
 ```
 
 ### VM Infrastructure
@@ -72,14 +72,14 @@ graph TB
     P -.->|Mount| B
     P -.->|Mount| D
 
-    style U fill:#e3f2fd
-    style DEV fill:#f3e5f5
-    style N fill:#fff3e0
-    style F fill:#e8f5e9
-    style B fill:#f3e5f5
-    style D fill:#ffebee
-    style V fill:#fce4ec
-    style P fill:#fff9c4
+    style U fill:#1e3a5f,stroke:#4a90e2,color:#fff
+    style DEV fill:#5f1e5a,stroke:#e24ad4,color:#fff
+    style N fill:#5f4a1e,stroke:#e2a84a,color:#fff
+    style F fill:#1e5f3a,stroke:#4ae28a,color:#fff
+    style B fill:#5f1e5a,stroke:#e24ad4,color:#fff
+    style D fill:#5f1e2e,stroke:#e24a6a,color:#fff
+    style V fill:#5f1e2e,stroke:#e24a6a,color:#fff
+    style P fill:#5f5a1e,stroke:#e2d44a,color:#fff
 ```
 
 ## Tech Stack
@@ -193,10 +193,10 @@ graph TD
     F --> I[Database Container]
     F --> J[Nginx Container]
 
-    style A fill:#e3f2fd
-    style B fill:#f3e5f5
-    style C fill:#fff3e0
-    style F fill:#e8f5e9
+    style A fill:#1e3a5f,stroke:#4a90e2,color:#fff
+    style B fill:#5f1e5a,stroke:#e24ad4,color:#fff
+    style C fill:#5f4a1e,stroke:#e2a84a,color:#fff
+    style F fill:#1e5f3a,stroke:#4ae28a,color:#fff
 ```
 
 **Deploy to server:**
@@ -345,11 +345,11 @@ graph TB
     F -->|Valid| I[Access User's Transactions]
     I -->|Filter by user_id| J[Transactions Table]
 
-    style A fill:#e3f2fd
-    style B fill:#fff3e0
-    style C fill:#f3e5f5
-    style F fill:#ffebee
-    style J fill:#e8f5e9
+    style A fill:#1e3a5f,stroke:#4a90e2,color:#fff
+    style B fill:#5f4a1e,stroke:#e2a84a,color:#fff
+    style C fill:#5f1e5a,stroke:#e24ad4,color:#fff
+    style F fill:#5f1e2e,stroke:#e24a6a,color:#fff
+    style J fill:#1e5f3a,stroke:#4ae28a,color:#fff
 ```
 
 #### Future Data Model with Auth
