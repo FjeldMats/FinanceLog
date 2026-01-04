@@ -638,24 +638,23 @@ const Projections = () => {
 
                 {/* Confidence interval area (only for Prophet) */}
                 {hasProphetData && (
-                  <Area
-                    type="monotone"
-                    dataKey="prophetUpper"
-                    stroke="none"
-                    fill="#10b981"
-                    fillOpacity={0.2}
-                    name="Confidence Range"
-                  />
-                )}
-                {hasProphetData && (
-                  <Area
-                    type="monotone"
-                    dataKey="prophetLower"
-                    stroke="none"
-                    fill="#ffffff"
-                    fillOpacity={1}
-                    name="Confidence Range Lower"
-                  />
+                  <>
+                    <Area
+                      type="monotone"
+                      dataKey="prophetLower"
+                      stroke="none"
+                      fill="transparent"
+                      name="Confidence Range Lower"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="prophetUpper"
+                      stroke="none"
+                      fill="#10b981"
+                      fillOpacity={0.2}
+                      name="Confidence Range"
+                    />
+                  </>
                 )}
 
                 <Line
