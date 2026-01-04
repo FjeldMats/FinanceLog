@@ -5,7 +5,9 @@ from app.models import Transaction, User
 from app import db
 from sqlalchemy import text
 import pandas as pd
-from prophet import Prophet
+import numpy as np
+from statsmodels.tsa.seasonal import seasonal_decompose
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from datetime import datetime, timedelta
 import warnings
 warnings.filterwarnings('ignore')
@@ -105,7 +107,7 @@ def update_transaction(transaction_id):
 
 @api.route('/projections/<category>', methods=['GET'])
 def get_projections(category):
-    """Get Prophet-based projections for a specific category."""
+    """Get AI-based projections using Holt-Winters Exponential Smoothing."""
     try:
         # Get all transactions for this category
         transactions = Transaction.query.filter_by(category=category).all()
@@ -113,22 +115,23 @@ def get_projections(category):
         if len(transactions) < 24:
             return jsonify({
                 "error": "Insufficient data",
-                "message": f"Need at least 24 months of data. Found {len(transactions)} transactions."
+                "message": f"Need at least 24 transactions. Found {len(transactions)} transactions."
             }), 400
 
-        # Prepare data for Prophet
+        # Prepare data
         data = []
         for tx in transactions:
             data.append({
-                'ds': tx.transaction_date,
-                'y': abs(tx.amount)
+                'date': tx.transaction_date,
+                'amount': abs(tx.amount)
             })
 
         # Create DataFrame and aggregate by month
         df = pd.DataFrame(data)
-        df['ds'] = pd.to_datetime(df['ds'])
-        df = df.groupby(df['ds'].dt.to_period('M')).agg({'y': 'sum'}).reset_index()
-        df['ds'] = df['ds'].dt.to_timestamp()
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.groupby(df['date'].dt.to_period('M')).agg({'amount': 'sum'}).reset_index()
+        df['date'] = df['date'].dt.to_timestamp()
+        df = df.sort_values('date')
 
         # Check if we have enough monthly data
         if len(df) < 12:
@@ -137,67 +140,56 @@ def get_projections(category):
                 "message": f"Need at least 12 months of data. Found {len(df)} months."
             }), 400
 
-        # Initialize and fit Prophet model
-        model = Prophet(
-            yearly_seasonality=True,
-            weekly_seasonality=False,
-            daily_seasonality=False,
-            interval_width=0.8,  # 80% confidence interval
-            changepoint_prior_scale=0.05  # Less sensitive to trend changes
+        # Create time series
+        ts = df.set_index('date')['amount']
+
+        # Fit Holt-Winters Exponential Smoothing model
+        # seasonal_periods=12 for yearly seasonality
+        model = ExponentialSmoothing(
+            ts,
+            seasonal_periods=12,
+            trend='add',
+            seasonal='add',
+            initialization_method='estimated'
         )
 
-        model.fit(df)
+        fitted_model = model.fit()
 
-        # Create future dataframe for 12 months ahead
-        future = model.make_future_dataframe(periods=12, freq='MS')
-        forecast = model.predict(future)
+        # Forecast 12 months ahead
+        forecast = fitted_model.forecast(steps=12)
 
-        # Prepare response with historical and projected data
+        # Calculate confidence intervals (simple approach using standard error)
+        residuals = fitted_model.resid
+        std_error = np.std(residuals)
+        confidence_multiplier = 1.28  # 80% confidence interval
+
+        # Prepare response
         result = {
             'historical': [],
-            'projected': [],
-            'trend': [],
-            'seasonality': []
+            'projected': []
         }
 
-        # Historical data (actual values)
-        for idx, row in df.iterrows():
+        # Historical data
+        for date, value in ts.items():
             result['historical'].append({
-                'date': row['ds'].strftime('%Y-%m'),
-                'value': float(row['y'])
-            })
-
-        # Projected data (future predictions with confidence intervals)
-        future_start = df['ds'].max()
-        for idx, row in forecast.iterrows():
-            date = pd.to_datetime(row['ds'])
-            if date > future_start:
-                result['projected'].append({
-                    'date': date.strftime('%Y-%m'),
-                    'value': float(row['yhat']),
-                    'lower': float(row['yhat_lower']),
-                    'upper': float(row['yhat_upper'])
-                })
-
-        # Trend component (shows overall direction)
-        for idx, row in forecast.iterrows():
-            date = pd.to_datetime(row['ds'])
-            result['trend'].append({
                 'date': date.strftime('%Y-%m'),
-                'value': float(row['trend'])
+                'value': float(value)
             })
 
-        # Yearly seasonality component (shows seasonal patterns)
-        for idx, row in forecast.iterrows():
-            date = pd.to_datetime(row['ds'])
-            if 'yearly' in row:
-                result['seasonality'].append({
-                    'date': date.strftime('%Y-%m'),
-                    'value': float(row['yearly'])
-                })
+        # Projected data with confidence intervals
+        forecast_dates = pd.date_range(start=ts.index[-1] + pd.DateOffset(months=1), periods=12, freq='MS')
+        for date, value in zip(forecast_dates, forecast):
+            result['projected'].append({
+                'date': date.strftime('%Y-%m'),
+                'value': float(value),
+                'lower': float(max(0, value - confidence_multiplier * std_error)),
+                'upper': float(value + confidence_multiplier * std_error)
+            })
 
         return jsonify(result), 200
 
     except Exception as e:
         logger.error(f"Error generating projections for {category}: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         return jsonify({"error": f"Failed to generate projections: {str(e)}"}), 500
