@@ -1,6 +1,73 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getTransactions, getProjections } from '../api';
 import { Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LineChart, Area, ComposedChart } from 'recharts';
+
+// Fullscreen Chart Container Component
+const ChartContainer = ({ title, subtitle, children, height = 300 }) => {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef(null);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen().then(() => {
+        setIsFullscreen(true);
+      }).catch(err => {
+        console.error('Error attempting to enable fullscreen:', err);
+      });
+    } else {
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false);
+      });
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className={`bg-table rounded-lg shadow ${isFullscreen ? 'p-8' : 'p-6'}`}
+    >
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <h2 className="text-xl font-bold text-primary">
+            {title}
+            {subtitle && <span className="ml-2 text-sm">{subtitle}</span>}
+          </h2>
+        </div>
+        <button
+          onClick={toggleFullscreen}
+          className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+        >
+          {isFullscreen ? (
+            // Exit fullscreen icon
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            // Enter fullscreen icon
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            </svg>
+          )}
+        </button>
+      </div>
+      <ResponsiveContainer width="100%" height={isFullscreen ? '85vh' : height}>
+        {children}
+      </ResponsiveContainer>
+    </div>
+  );
+};
 
 const Projections = () => {
   const [transactions, setTransactions] = useState([]);
@@ -404,116 +471,110 @@ const Projections = () => {
       {/* Income and Expense Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Total Income Chart */}
-        <div className="bg-table p-6 rounded-lg shadow">
-          <h2 className="text-xl font-bold text-primary mb-4">Total Income</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={incomeChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="month"
-                tickFormatter={formatMonth}
-                angle={-45}
-                textAnchor="end"
-                height={80}
-              />
-              <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
-              <Tooltip
-                formatter={(value, name) => [formatCurrency(value), name]}
-                labelFormatter={formatMonth}
-                contentStyle={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px'
-                }}
-              />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="actual"
-                stroke="#3b82f6"
-                strokeWidth={3}
-                name="Actual Income"
-                dot={{ r: 4, fill: '#3b82f6' }}
-                connectNulls={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="current"
-                stroke="#f97316"
-                strokeWidth={3}
-                name="Current Month"
-                dot={{ r: 6, fill: '#f97316', strokeWidth: 2, stroke: '#fff' }}
-                connectNulls={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="projected"
-                stroke="#10b981"
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                name="Projected Average"
-                dot={false}
-                connectNulls={true}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartContainer title="Total Income">
+          <LineChart data={incomeChartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              dataKey="month"
+              tickFormatter={formatMonth}
+              angle={-45}
+              textAnchor="end"
+              height={80}
+            />
+            <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
+            <Tooltip
+              formatter={(value, name) => [formatCurrency(value), name]}
+              labelFormatter={formatMonth}
+              contentStyle={{
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                border: '1px solid #ccc',
+                borderRadius: '4px'
+              }}
+            />
+            <Legend />
+            <Line
+              type="monotone"
+              dataKey="actual"
+              stroke="#3b82f6"
+              strokeWidth={3}
+              name="Actual Income"
+              dot={{ r: 4, fill: '#3b82f6' }}
+              connectNulls={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="current"
+              stroke="#f97316"
+              strokeWidth={3}
+              name="Current Month"
+              dot={{ r: 6, fill: '#f97316', strokeWidth: 2, stroke: '#fff' }}
+              connectNulls={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="projected"
+              stroke="#10b981"
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              name="Projected Average"
+              dot={false}
+              connectNulls={true}
+            />
+          </LineChart>
+        </ChartContainer>
 
         {/* Total Expenses Chart */}
-        <div className="bg-table p-6 rounded-lg shadow">
-          <h2 className="text-xl font-bold text-primary mb-4">Total Expenses</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={expenseChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="month"
-                tickFormatter={formatMonth}
-                angle={-45}
-                textAnchor="end"
-                height={80}
-              />
-              <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
-              <Tooltip
-                formatter={(value, name) => [formatCurrency(value), name]}
-                labelFormatter={formatMonth}
-                contentStyle={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px'
-                }}
-              />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="actual"
-                stroke="#3b82f6"
-                strokeWidth={3}
-                name="Actual Expenses"
-                dot={{ r: 4, fill: '#3b82f6' }}
-                connectNulls={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="current"
-                stroke="#f97316"
-                strokeWidth={3}
-                name="Current Month"
-                dot={{ r: 6, fill: '#f97316', strokeWidth: 2, stroke: '#fff' }}
-                connectNulls={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="projected"
-                stroke="#10b981"
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                name="Projected Average"
-                dot={false}
-                connectNulls={true}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartContainer title="Total Expenses">
+          <LineChart data={expenseChartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              dataKey="month"
+              tickFormatter={formatMonth}
+              angle={-45}
+              textAnchor="end"
+              height={80}
+            />
+            <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
+            <Tooltip
+              formatter={(value, name) => [formatCurrency(value), name]}
+              labelFormatter={formatMonth}
+              contentStyle={{
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                border: '1px solid #ccc',
+                borderRadius: '4px'
+              }}
+            />
+            <Legend />
+            <Line
+              type="monotone"
+              dataKey="actual"
+              stroke="#3b82f6"
+              strokeWidth={3}
+              name="Actual Expenses"
+              dot={{ r: 4, fill: '#3b82f6' }}
+              connectNulls={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="current"
+              stroke="#f97316"
+              strokeWidth={3}
+              name="Current Month"
+              dot={{ r: 6, fill: '#f97316', strokeWidth: 2, stroke: '#fff' }}
+              connectNulls={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="projected"
+              stroke="#10b981"
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              name="Projected Average"
+              dot={false}
+              connectNulls={true}
+            />
+          </LineChart>
+        </ChartContainer>
       </div>
 
       {/* Category Charts */}
@@ -525,14 +586,18 @@ const Projections = () => {
 
           const hasProphetData = prophetProjections[category] && prophetProjections[category].projected;
 
+          const subtitle = hasProphetData
+            ? <span className="text-green-600">✨ AI-Powered</span>
+            : loadingProjections
+            ? <span className="text-gray-500">Loading...</span>
+            : null;
+
           return (
-            <div key={category} className="bg-table p-6 rounded-lg shadow">
-              <h2 className="text-xl font-bold text-primary mb-4">
-                {category}
-                {hasProphetData && <span className="ml-2 text-sm text-green-600">✨ AI-Powered</span>}
-                {loadingProjections && <span className="ml-2 text-sm text-gray-500">Loading...</span>}
-              </h2>
-            <ResponsiveContainer width="100%" height={300}>
+            <ChartContainer
+              key={category}
+              title={category}
+              subtitle={subtitle}
+            >
               <ComposedChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
@@ -628,10 +693,9 @@ const Projections = () => {
                   />
                 )}
               </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        );
-      })}
+            </ChartContainer>
+          );
+        })}
     </div>
   );
 };
