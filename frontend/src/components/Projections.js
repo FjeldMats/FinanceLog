@@ -35,18 +35,19 @@ const ChartContainer = ({ title, subtitle, children, height = 300 }) => {
   return (
     <div
       ref={containerRef}
-      className={`bg-table rounded-lg shadow ${isFullscreen ? 'p-8' : 'p-6'}`}
+      className={`bg-white dark:bg-gray-800 rounded-lg shadow ${isFullscreen ? 'p-8 w-screen h-screen flex flex-col' : 'p-6'}`}
+      style={isFullscreen ? { backgroundColor: 'var(--bg-table, #ffffff)' } : {}}
     >
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h2 className="text-xl font-bold text-primary">
+          <h2 className={`text-xl font-bold ${isFullscreen ? 'text-gray-900 dark:text-white' : 'text-primary'}`}>
             {title}
             {subtitle && <span className="ml-2 text-sm">{subtitle}</span>}
           </h2>
         </div>
         <button
           onClick={toggleFullscreen}
-          className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-700 dark:text-gray-300"
           title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
         >
           {isFullscreen ? (
@@ -62,9 +63,11 @@ const ChartContainer = ({ title, subtitle, children, height = 300 }) => {
           )}
         </button>
       </div>
-      <ResponsiveContainer width="100%" height={isFullscreen ? '85vh' : height}>
-        {children}
-      </ResponsiveContainer>
+      <div className={isFullscreen ? 'flex-1' : ''}>
+        <ResponsiveContainer width="100%" height={isFullscreen ? '100%' : height}>
+          {children}
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 };
