@@ -64,3 +64,13 @@ export const updateTransaction = async (id, transaction) => {
     throw error;
   }
 };
+
+export const getProjections = async (category) => {
+  try {
+    const response = await axios.get(`${API_URL}/projections/${encodeURIComponent(category)}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching projections:', error.response?.data || error.message);
+    throw error;
+  }
+};

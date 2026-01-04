@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { getTransactions } from '../api';
-import { Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LineChart } from 'recharts';
+import { getTransactions, getProjections } from '../api';
+import { Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LineChart, Area, ComposedChart } from 'recharts';
 
 const Projections = () => {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState({});
+  const [prophetProjections, setProphetProjections] = useState({});
+  const [loadingProjections, setLoadingProjections] = useState(false);
 
   useEffect(() => {
     const loadTransactions = async () => {
@@ -62,6 +64,32 @@ const Projections = () => {
 
     setCategories(filteredCategories);
   }, [transactions]);
+
+  // Load Prophet projections for all categories
+  useEffect(() => {
+    const loadProphetProjections = async () => {
+      if (Object.keys(categories).length === 0) return;
+
+      setLoadingProjections(true);
+      const projections = {};
+
+      for (const category of Object.keys(categories)) {
+        try {
+          const data = await getProjections(category);
+          projections[category] = data;
+        } catch (error) {
+          console.error(`Failed to load projections for ${category}:`, error);
+          // If Prophet fails, we'll fall back to simple averaging
+          projections[category] = null;
+        }
+      }
+
+      setProphetProjections(projections);
+      setLoadingProjections(false);
+    };
+
+    loadProphetProjections();
+  }, [categories]);
 
   // Calculate category data with historical months + 12 month projection
   const getCategoryChartData = () => {
@@ -242,8 +270,9 @@ const Projections = () => {
     Object.keys(categories).forEach(category => {
       const monthlyAmounts = categoryData[category];
       const months = Object.keys(monthlyAmounts).sort();
+      const prophetData = prophetProjections[category];
 
-      // Calculate average from all historical data (excluding current month)
+      // Calculate average from all historical data (excluding current month) as fallback
       let total = 0;
       months.forEach(month => {
         total += monthlyAmounts[month] || 0;
@@ -253,13 +282,16 @@ const Projections = () => {
       // Build chart data: historical + current month + 12 month projection
       const chartData = [];
 
-      // Add historical data with projection line
+      // Add historical data
       months.forEach(month => {
         chartData.push({
           month: month,
           actual: monthlyAmounts[month],
           current: null,
-          projected: average,
+          projected: null,
+          prophetProjected: null,
+          prophetLower: null,
+          prophetUpper: null,
           isProjection: false,
           isCurrent: false
         });
@@ -271,24 +303,48 @@ const Projections = () => {
         month: currentMonthKey,
         actual: null,
         current: currentAmount,
-        projected: average,
+        projected: null,
+        prophetProjected: null,
+        prophetLower: null,
+        prophetUpper: null,
         isProjection: false,
         isCurrent: true
       });
 
-      // Add 12 month projection
-      for (let i = 1; i <= 12; i++) {
-        const projDate = new Date(year, month - 1 + i, 1);
-        const projMonthKey = `${projDate.getFullYear()}-${(projDate.getMonth() + 1).toString().padStart(2, '0')}`;
-
-        chartData.push({
-          month: projMonthKey,
-          actual: null,
-          current: null,
-          projected: average,
-          isProjection: true,
-          isCurrent: false
+      // Add 12 month projection using Prophet if available, otherwise use simple average
+      if (prophetData && prophetData.projected) {
+        // Use Prophet projections
+        prophetData.projected.forEach(proj => {
+          chartData.push({
+            month: proj.date,
+            actual: null,
+            current: null,
+            projected: null,
+            prophetProjected: proj.value,
+            prophetLower: proj.lower,
+            prophetUpper: proj.upper,
+            isProjection: true,
+            isCurrent: false
+          });
         });
+      } else {
+        // Fallback to simple average
+        for (let i = 1; i <= 12; i++) {
+          const projDate = new Date(year, month - 1 + i, 1);
+          const projMonthKey = `${projDate.getFullYear()}-${(projDate.getMonth() + 1).toString().padStart(2, '0')}`;
+
+          chartData.push({
+            month: projMonthKey,
+            actual: null,
+            current: null,
+            projected: average,
+            prophetProjected: null,
+            prophetLower: null,
+            prophetUpper: null,
+            isProjection: true,
+            isCurrent: false
+          });
+        }
       }
 
       chartDataByCategory[category] = chartData;
@@ -448,11 +504,17 @@ const Projections = () => {
         .map(category => {
           const chartData = chartDataByCategory[category] || [];
 
+          const hasProphetData = prophetProjections[category] && prophetProjections[category].projected;
+
           return (
             <div key={category} className="bg-table p-6 rounded-lg shadow">
-              <h2 className="text-xl font-bold text-primary mb-4">{category}</h2>
+              <h2 className="text-xl font-bold text-primary mb-4">
+                {category}
+                {hasProphetData && <span className="ml-2 text-sm text-green-600">✨ AI-Powered</span>}
+                {loadingProjections && <span className="ml-2 text-sm text-gray-500">Loading...</span>}
+              </h2>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
+              <ComposedChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                   dataKey="month"
@@ -467,6 +529,9 @@ const Projections = () => {
                     if (name === "Current Month (In Progress)") {
                       return [formatCurrency(value), name];
                     }
+                    if (name === "Confidence Range") {
+                      return null; // Don't show the area in tooltip
+                    }
                     return [formatCurrency(value), name];
                   }}
                   labelFormatter={formatMonth}
@@ -477,6 +542,29 @@ const Projections = () => {
                   }}
                 />
                 <Legend />
+
+                {/* Confidence interval area (only for Prophet) */}
+                {hasProphetData && (
+                  <Area
+                    type="monotone"
+                    dataKey="prophetUpper"
+                    stroke="none"
+                    fill="#10b981"
+                    fillOpacity={0.2}
+                    name="Confidence Range"
+                  />
+                )}
+                {hasProphetData && (
+                  <Area
+                    type="monotone"
+                    dataKey="prophetLower"
+                    stroke="none"
+                    fill="#ffffff"
+                    fillOpacity={1}
+                    name="Confidence Range Lower"
+                  />
+                )}
+
                 <Line
                   type="monotone"
                   dataKey="actual"
@@ -495,17 +583,32 @@ const Projections = () => {
                   dot={{ r: 6, fill: '#f97316', strokeWidth: 2, stroke: '#fff' }}
                   connectNulls={false}
                 />
-                <Line
-                  type="monotone"
-                  dataKey="projected"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  name="Projected Average (12mo)"
-                  dot={false}
-                  connectNulls={true}
-                />
-              </LineChart>
+
+                {/* Prophet projection or simple average */}
+                {hasProphetData ? (
+                  <Line
+                    type="monotone"
+                    dataKey="prophetProjected"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    name="AI Projection (Prophet)"
+                    dot={false}
+                    connectNulls={true}
+                  />
+                ) : (
+                  <Line
+                    type="monotone"
+                    dataKey="projected"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    name="Simple Average"
+                    dot={false}
+                    connectNulls={true}
+                  />
+                )}
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         );
