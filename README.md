@@ -2,14 +2,54 @@
 
 A personal finance tracking application for managing income and expenses with visual analytics.
 
+## 🚀 Quick Start
+
+### Prerequisites
+- Docker and Docker Compose installed (for local development)
+- Ansible installed (for deployment)
+- SSH access to remote server (for deployment)
+
+### Deployment Checklist
+
+Before deploying to production:
+
+- [ ] **1. Configure Frontend**
+  ```bash
+  cp frontend/.env.example frontend/.env
+  # Edit REACT_APP_API_URL with your server IP
+  ```
+
+- [ ] **2. Configure Backend**
+  ```bash
+  cp .env.example .env
+  # Generate SECRET_KEY: python -c "import secrets; print(secrets.token_hex(32))"
+  # Set strong POSTGRES_PASSWORD
+  ```
+
+- [ ] **3. Configure Deployment**
+  ```bash
+  cp deployment/ansible/hosts.example deployment/ansible/hosts
+  # Edit with your server IP and SSH username
+  ```
+
+- [ ] **4. Deploy**
+  ```bash
+  cd deployment && ./start_ansible.sh
+  # Enter sudo password when prompted
+  ```
+
+- [ ] **5. Verify**
+  - Visit `http://your-server-ip` in browser
+  - Check all containers running: `ssh user@server "docker ps"`
+
 ## ⚠️ Security Notice
 
 **Before deploying this application:**
-1. Change all default passwords and credentials
-2. Generate a strong SECRET_KEY for Flask
-3. Use strong database passwords
-4. Never commit `.env` files or credentials to version control
-5. Review and update all configuration files with your specific values
+1. ✅ Change all default passwords and credentials
+2. ✅ Generate a strong SECRET_KEY for Flask (64-char hex)
+3. ✅ Use strong database passwords (16+ characters)
+4. ✅ Never commit `.env` files or credentials to version control
+5. ✅ Review and update all configuration files with your specific values
 
 See the [Configuration](#configuration) section for detailed setup instructions.
 
@@ -199,21 +239,31 @@ graph TD
     style F fill:#1e5f3a,stroke:#4ae28a,color:#fff
 ```
 
+### Quick Start
+
 **Deploy to server:**
 ```bash
 cd deployment
 ./start_ansible.sh
-# You'll be prompted for sudo password on first run (to install Docker)
-# After that, no password needed for deployments!
 ```
 
-Or manually:
+**First deployment:**
+- Prompts for sudo password (to install Docker and add user to docker group)
+- Takes ~5-10 minutes (downloads Docker, builds images)
+
+**Subsequent deployments:**
+- Still prompts for sudo password, but skips most sudo tasks
+- Takes ~30-60 seconds (only rebuilds changed images)
+- No password stored anywhere - secure by design!
+
+**Manual deployment:**
 ```bash
 cd deployment
 ansible-playbook -i ./ansible/hosts ./ansible/deploy.yml --private-key ~/.ssh/id_rsa --ask-become-pass
 ```
 
-**Local development:**
+### Local Development
+
 ```bash
 # Start all services
 docker compose up -d
@@ -221,6 +271,12 @@ docker compose up -d
 # Backend runs on: http://localhost:5000
 # Frontend runs on: http://localhost:3000
 # Database runs on: localhost:5432
+
+# View logs
+docker compose logs -f
+
+# Stop services
+docker compose down
 ```
 
 ## Configuration
@@ -229,48 +285,67 @@ docker compose up -d
 
 **⚠️ IMPORTANT: Change all default credentials before deployment!**
 
-1. **Frontend Configuration:**
-   ```bash
-   cp frontend/.env.example frontend/.env
-   # Edit frontend/.env and set REACT_APP_API_URL to your server IP/domain
-   ```
+#### 1. Frontend Configuration
+```bash
+cp frontend/.env.example frontend/.env
+# Edit frontend/.env and set REACT_APP_API_URL to your server IP/domain
+```
 
-2. **Docker Environment:**
-   ```bash
-   cp .env.example .env
-   # Edit .env and set secure database credentials and SECRET_KEY
-   ```
+**Example `frontend/.env`:**
+```env
+REACT_APP_API_URL=http://10.0.0.29/api
+GENERATE_SOURCEMAP=false
+```
 
-3. **Deployment Configuration:**
-   ```bash
-   cp deployment/ansible/hosts.example deployment/ansible/hosts
-   # Edit deployment/ansible/hosts and set your server IP and username
-   ```
+#### 2. Docker Environment
+```bash
+cp .env.example .env
+# Edit .env and set secure database credentials and SECRET_KEY
+```
 
-   **Note:** The playbook automatically adds your user to the `docker` group, so you only need to enter your sudo password during initial setup. Subsequent deployments won't require sudo for Docker commands.
+**Example `.env`:**
+```env
+POSTGRES_DB=finance_tracker
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=your_secure_password_here
+SECRET_KEY=your_64_char_hex_secret_key_here
+```
 
-4. **Generate Secure SECRET_KEY:**
-   ```bash
-   python -c "import secrets; print(secrets.token_hex(32))"
-   ```
+**Generate a secure SECRET_KEY:**
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
 
-### Environment Variables
+#### 3. Deployment Configuration
+```bash
+cp deployment/ansible/hosts.example deployment/ansible/hosts
+# Edit deployment/ansible/hosts and set your server IP and username
+```
 
-**Frontend (`frontend/.env`):**
-- `REACT_APP_API_URL` - Backend API URL (e.g., `http://your-server-ip/api`)
-- `GENERATE_SOURCEMAP` - Set to `false` for production
+**Example `deployment/ansible/hosts`:**
+```ini
+[webservers]
+10.0.0.29 ansible_user=mats
+```
 
-**Backend (`.env` or `docker-compose.yml`):**
-- `DATABASE_URL` - PostgreSQL connection string
-- `SECRET_KEY` - Flask secret key (use a strong random value)
-- `POSTGRES_DB` - Database name
-- `POSTGRES_USER` - Database username
-- `POSTGRES_PASSWORD` - Database password (use a strong password)
+**How it works:**
+- ✅ **First deployment:** Ansible installs Docker and adds your user to the `docker` group
+- ✅ **Subsequent deployments:** Docker commands run without sudo (faster, cleaner)
+- ✅ **No password storage:** Your sudo password is never stored anywhere
+- ✅ **Secure by design:** Industry-standard approach using Docker group permissions
 
-**Deployment (`deployment/ansible/hosts`):**
-- Server IP address
-- SSH username
-- SSH private key path
+### Environment Variables Reference
+
+| Variable | File | Description | Example |
+|----------|------|-------------|---------|
+| `REACT_APP_API_URL` | `frontend/.env` | Backend API URL | `http://10.0.0.29/api` |
+| `GENERATE_SOURCEMAP` | `frontend/.env` | Generate source maps | `false` (production) |
+| `POSTGRES_DB` | `.env` | Database name | `finance_tracker` |
+| `POSTGRES_USER` | `.env` | Database username | `admin` |
+| `POSTGRES_PASSWORD` | `.env` | Database password | `strong_password_123` |
+| `SECRET_KEY` | `.env` | Flask secret key | `64-char hex string` |
+| `ansible_user` | `deployment/ansible/hosts` | SSH username | `mats` |
+| Server IP | `deployment/ansible/hosts` | Remote server IP | `10.0.0.29` |
 
 ## Common Tasks
 
@@ -295,22 +370,119 @@ docker compose up -d
 - Add client function in `frontend/src/api.js`
 - Use in React components
 
-## Environment Variables
+## Troubleshooting
 
-**Backend:**
-- `DATABASE_URL` - PostgreSQL connection string
-- `SECRET_KEY` - Flask secret key
+### Deployment Issues
 
-**Frontend:**
-- `REACT_APP_API_URL` - Backend API URL (e.g., `http://10.0.0.29:5000/api`)
+**"Permission denied" when running Docker commands:**
+```bash
+# SSH into the server and verify docker group membership
+ssh mats@10.0.0.29
+groups
+# Should show: mats docker ...
+
+# If not in docker group, log out and back in
+exit
+ssh mats@10.0.0.29
+```
+
+**Ansible playbook fails:**
+```bash
+# Check syntax
+cd deployment
+ansible-playbook -i ./ansible/hosts ./ansible/deploy.yml --syntax-check
+
+# Run with verbose output
+./start_ansible.sh -vvv
+```
+
+**Docker containers not starting:**
+```bash
+# SSH into server
+ssh mats@10.0.0.29
+
+# Check container status
+docker ps -a
+
+# View logs
+docker compose -f ~/FinanceLog/docker-compose.yml logs
+
+# Restart containers
+cd ~/FinanceLog
+docker compose down
+docker compose up -d
+```
+
+**Frontend can't connect to backend:**
+- Verify `REACT_APP_API_URL` in `frontend/.env` matches your server IP
+- Check Nginx is running: `docker ps | grep nginx`
+- Test backend directly: `curl http://your-server-ip/api/transactions`
+
+### Local Development Issues
+
+**Port already in use:**
+```bash
+# Find process using port 5000 (backend)
+lsof -i :5000
+kill -9 <PID>
+
+# Or use different ports in docker-compose.yml
+```
+
+**Database connection errors:**
+```bash
+# Verify database is running
+docker ps | grep postgres
+
+# Check database logs
+docker logs postgres_transactions
+
+# Reset database
+docker compose down -v  # WARNING: Deletes all data!
+docker compose up -d
+```
 
 ## Database Backups
 
-Database backups are stored in: `~/FinanceLog_Backups/`
+### Manual Backup
 
-To create a new backup:
 ```bash
-docker exec postgres_transactions pg_dump -U admin finance_tracker > ~/FinanceLog_Backups/backup_$(date +%Y%m%d).sql
+# Create backup directory
+mkdir -p ~/FinanceLog_Backups
+
+# Create backup
+docker exec postgres_transactions pg_dump -U admin finance_tracker > ~/FinanceLog_Backups/backup_$(date +%Y%m%d_%H%M%S).sql
+```
+
+### Restore from Backup
+
+```bash
+# Stop the application
+cd ~/FinanceLog
+docker compose down
+
+# Start only the database
+docker compose up -d database
+
+# Restore backup
+cat ~/FinanceLog_Backups/backup_20260104_120000.sql | docker exec -i postgres_transactions psql -U admin finance_tracker
+
+# Start all services
+docker compose up -d
+```
+
+### Automated Backups (Optional)
+
+Add to crontab on the server:
+```bash
+# Edit crontab
+crontab -e
+
+# Add daily backup at 2 AM
+0 2 * * * docker exec postgres_transactions pg_dump -U admin finance_tracker > ~/FinanceLog_Backups/backup_$(date +\%Y\%m\%d).sql
+
+# Keep only last 30 days of backups
+0 3 * * * find ~/FinanceLog_Backups -name "backup_*.sql" -mtime +30 -delete
 ```
 
 ## Future Improvements
