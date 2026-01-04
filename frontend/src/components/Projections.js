@@ -1,18 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { getTransactions } from '../api';
 import { Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LineChart } from 'recharts';
 
-const CATEGORY_OPTIONS = {
-  Hus: ['Lån Storebrand', 'Eindomskatt  (moss kommune)', 'Renovasjon (moss kommune)', 'Gjensidige forsikring hus'],
-  'Faste utgifter': ['Telia telefon', 'Telia internett/Tv', 'Strøm'],
-  Personelig: ['Spenst', 'Klær', 'Sparing'],
-  Mat: ['Rema 1000', 'Kiwi', 'Spar', 'Meny','Obs', 'Bunnpris', 'Willis', 'Nordby', 'Div butikk'],
-  Transport: ['Bensin', 'Toyota lån', 'Parkering', 'Gejensidige forsikring', 'Service', 'Bompenger'],
-  Andre: ['Gaver', 'Hage', 'Andre']
-};
-
 const Projections = () => {
   const [transactions, setTransactions] = useState([]);
+  const [categories, setCategories] = useState({});
 
   useEffect(() => {
     const loadTransactions = async () => {
@@ -22,8 +14,61 @@ const Projections = () => {
     loadTransactions();
   }, []);
 
+  // Dynamically derive category structure from transactions
+  useEffect(() => {
+    if (transactions.length === 0) return;
+
+    const categoryMap = {};
+    const categoryCounts = {};
+    const categoryTotals = {};
+
+    transactions.forEach(tx => {
+      const category = tx.category?.trim();
+      const subcategory = tx.subcategory?.trim();
+
+      // Skip if no category or if it's income (handled separately)
+      if (!category || category === 'Inntekt') return;
+
+      // Initialize category
+      if (!categoryMap[category]) {
+        categoryMap[category] = new Set();
+        categoryCounts[category] = 0;
+        categoryTotals[category] = 0;
+      }
+
+      // Track subcategories
+      if (subcategory) {
+        categoryMap[category].add(subcategory);
+      }
+
+      // Count transactions and total spending
+      categoryCounts[category]++;
+      categoryTotals[category] += Math.abs(tx.amount);
+    });
+
+    // Filter out categories with too little data (need at least 12 transactions)
+    const MIN_TRANSACTIONS = 12;
+    const filteredCategories = {};
+
+    Object.keys(categoryMap).forEach(cat => {
+      if (categoryCounts[cat] >= MIN_TRANSACTIONS) {
+        filteredCategories[cat] = {
+          subcategories: Array.from(categoryMap[cat]),
+          total: categoryTotals[cat],
+          count: categoryCounts[cat]
+        };
+      }
+    });
+
+    setCategories(filteredCategories);
+  }, [transactions]);
+
   // Calculate category data with historical months + 12 month projection
   const getCategoryChartData = () => {
+    if (Object.keys(categories).length === 0) {
+      return { chartDataByCategory: {}, incomeChartData: [], expenseChartData: [] };
+    }
+
     const categoryData = {};
     const currentMonthData = {};
     const incomeData = {};
@@ -31,8 +76,8 @@ const Projections = () => {
     let currentMonthIncome = 0;
     let currentMonthExpense = 0;
 
-    // Initialize category tracking
-    Object.keys(CATEGORY_OPTIONS).forEach(cat => {
+    // Initialize category tracking for all dynamic categories
+    Object.keys(categories).forEach(cat => {
       categoryData[cat] = {};
       currentMonthData[cat] = 0;
     });
@@ -46,8 +91,11 @@ const Projections = () => {
       const date = new Date(tx.transaction_date);
       const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
 
+      const category = tx.category?.trim();
+      if (!category) return;
+
       // Track income and expenses separately
-      const isIncome = tx.category.trim() === 'Inntekt';
+      const isIncome = category === 'Inntekt';
       const amount = Math.abs(tx.amount);
 
       // Track current month income/expense
@@ -68,37 +116,27 @@ const Projections = () => {
         }
       }
 
-      // Determine which main category this transaction belongs to
-      let mainCategory = tx.category.trim();
+      // Skip income for category breakdown (handled separately)
+      if (isIncome) return;
 
-      // Check if it's a subcategory match
-      if (tx.subcategory) {
-        for (let cat in CATEGORY_OPTIONS) {
-          if (CATEGORY_OPTIONS[cat].some(sub => sub.toLowerCase() === tx.subcategory.toLowerCase())) {
-            mainCategory = cat;
-            break;
-          }
-        }
-      }
-
-      // Skip if not in our category list
-      if (!categoryData[mainCategory]) {
+      // Skip if not in our dynamic category list
+      if (!categoryData[category]) {
         return;
       }
 
       // Track current month separately
       if (monthKey === currentMonthKey) {
-        currentMonthData[mainCategory] += amount;
+        currentMonthData[category] += amount;
         return;
       }
 
       // Initialize month for this category if needed
-      if (!categoryData[mainCategory][monthKey]) {
-        categoryData[mainCategory][monthKey] = 0;
+      if (!categoryData[category][monthKey]) {
+        categoryData[category][monthKey] = 0;
       }
 
       // Add to category total
-      categoryData[mainCategory][monthKey] += amount;
+      categoryData[category][monthKey] += amount;
     });
 
     // Calculate income and expense totals chart data
@@ -201,7 +239,7 @@ const Projections = () => {
     // For each category, calculate average and add current month + 12 month projection
     const chartDataByCategory = {};
 
-    Object.keys(CATEGORY_OPTIONS).forEach(category => {
+    Object.keys(categories).forEach(category => {
       const monthlyAmounts = categoryData[category];
       const months = Object.keys(monthlyAmounts).sort();
 
@@ -405,12 +443,14 @@ const Projections = () => {
 
       {/* Category Charts */}
       <h2 className="text-2xl font-bold text-primary mt-8">Category Breakdown</h2>
-      {Object.keys(CATEGORY_OPTIONS).map(category => {
-        const chartData = chartDataByCategory[category] || [];
+      {Object.keys(categories)
+        .sort((a, b) => categories[b].total - categories[a].total) // Sort by total spending (highest first)
+        .map(category => {
+          const chartData = chartDataByCategory[category] || [];
 
-        return (
-          <div key={category} className="bg-table p-6 rounded-lg shadow">
-            <h2 className="text-xl font-bold text-primary mb-4">{category}</h2>
+          return (
+            <div key={category} className="bg-table p-6 rounded-lg shadow">
+              <h2 className="text-xl font-bold text-primary mb-4">{category}</h2>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
