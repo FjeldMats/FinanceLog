@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getTransactions, getProjections } from '../api';
-import { Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LineChart, Area, ComposedChart } from 'recharts';
+import { Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, Area, ComposedChart } from 'recharts';
 
 // Fullscreen Chart Container Component
 const ChartContainer = ({ title, subtitle, children, height = 300 }) => {
@@ -141,7 +141,7 @@ const Projections = () => {
     setCategories(filteredCategories);
   }, [transactions]);
 
-  // Load Prophet projections for all categories
+  // Load Prophet projections for all categories + Income
   useEffect(() => {
     const loadProphetProjections = async () => {
       if (Object.keys(categories).length === 0) return;
@@ -149,6 +149,7 @@ const Projections = () => {
       setLoadingProjections(true);
       const projections = {};
 
+      // Load projections for all expense categories
       for (const category of Object.keys(categories)) {
         try {
           const data = await getProjections(category);
@@ -158,6 +159,15 @@ const Projections = () => {
           // If Prophet fails, we'll fall back to simple averaging
           projections[category] = null;
         }
+      }
+
+      // Also load projections for Income (Inntekt)
+      try {
+        const incomeData = await getProjections('Inntekt');
+        projections['Inntekt'] = incomeData;
+      } catch (error) {
+        console.error('Failed to load projections for Income:', error);
+        projections['Inntekt'] = null;
       }
 
       setProphetProjections(projections);
@@ -263,78 +273,169 @@ const Projections = () => {
     // Get all unique months
     const allMonths = [...new Set([...incomeMonths, ...expenseMonths])].sort();
 
-    // Build income chart data
+    // Build income chart data with Prophet projections
     const incomeChartData = [];
+    const incomeProphetData = prophetProjections['Inntekt'];
+
     allMonths.forEach(month => {
       incomeChartData.push({
         month: month,
         actual: incomeData[month] || 0,
         current: null,
-        projected: avgIncome,
+        projected: null,
+        prophetProjected: null,
+        prophetLower: null,
+        prophetUpper: null,
+        prophetRange: null,
         isProjection: false,
         isCurrent: false
       });
     });
+
+    // Get current month projection from Prophet if available
+    const currentMonthIncomeProjection = incomeProphetData?.projected?.find(
+      p => p.date === currentMonthKey
+    );
+    const currentIncomeProphetRange = currentMonthIncomeProjection
+      ? currentMonthIncomeProjection.upper - currentMonthIncomeProjection.lower
+      : null;
 
     // Add current month for income
     incomeChartData.push({
       month: currentMonthKey,
       actual: null,
       current: currentMonthIncome,
-      projected: avgIncome,
+      projected: null,
+      prophetProjected: currentMonthIncomeProjection ? currentMonthIncomeProjection.value : null,
+      prophetLower: currentMonthIncomeProjection ? currentMonthIncomeProjection.lower : null,
+      prophetUpper: currentMonthIncomeProjection ? currentMonthIncomeProjection.upper : null,
+      prophetRange: currentIncomeProphetRange,
       isProjection: false,
       isCurrent: true
     });
 
     // Add 12 month projection for income
     const [year, month] = currentMonthKey.split('-').map(Number);
-    for (let i = 1; i <= 12; i++) {
-      const projDate = new Date(year, month - 1 + i, 1);
-      const projMonthKey = `${projDate.getFullYear()}-${(projDate.getMonth() + 1).toString().padStart(2, '0')}`;
+    const futureIncomeProjections = incomeProphetData?.projected?.filter(
+      p => p.date > currentMonthKey
+    ) || [];
 
-      incomeChartData.push({
-        month: projMonthKey,
-        actual: null,
-        current: null,
-        projected: avgIncome,
-        isProjection: true,
-        isCurrent: false
+    if (incomeProphetData && futureIncomeProjections.length > 0) {
+      // Use Prophet projections
+      futureIncomeProjections.forEach(proj => {
+        const range = proj.upper - proj.lower;
+        incomeChartData.push({
+          month: proj.date,
+          actual: null,
+          current: null,
+          projected: null,
+          prophetProjected: proj.value,
+          prophetLower: proj.lower,
+          prophetUpper: proj.upper,
+          prophetRange: range,
+          isProjection: true,
+          isCurrent: false
+        });
       });
+    } else {
+      // Fallback to simple average
+      for (let i = 1; i <= 12; i++) {
+        const projDate = new Date(year, month - 1 + i, 1);
+        const projMonthKey = `${projDate.getFullYear()}-${(projDate.getMonth() + 1).toString().padStart(2, '0')}`;
+
+        incomeChartData.push({
+          month: projMonthKey,
+          actual: null,
+          current: null,
+          projected: avgIncome,
+          prophetProjected: null,
+          prophetLower: null,
+          prophetUpper: null,
+          prophetRange: null,
+          isProjection: true,
+          isCurrent: false
+        });
+      }
     }
 
-    // Build expense chart data
+    // Build expense chart data by aggregating all expense category projections
     const expenseChartData = [];
+
+    // Historical data
     allMonths.forEach(month => {
       expenseChartData.push({
         month: month,
         actual: expenseData[month] || 0,
         current: null,
-        projected: avgExpense,
+        projected: null,
+        prophetProjected: null,
+        prophetLower: null,
+        prophetUpper: null,
+        prophetRange: null,
         isProjection: false,
         isCurrent: false
       });
     });
 
-    // Add current month for expense
+    // Aggregate Prophet projections from all expense categories
+    const aggregateExpenseProjections = (monthKey) => {
+      let totalProjected = 0;
+      let totalLower = 0;
+      let totalUpper = 0;
+      let hasAnyProjection = false;
+
+      Object.keys(categories).forEach(category => {
+        const catProphet = prophetProjections[category];
+        if (catProphet?.projected) {
+          const projection = catProphet.projected.find(p => p.date === monthKey);
+          if (projection) {
+            totalProjected += projection.value;
+            totalLower += projection.lower;
+            totalUpper += projection.upper;
+            hasAnyProjection = true;
+          }
+        }
+      });
+
+      return hasAnyProjection ? {
+        value: totalProjected,
+        lower: totalLower,
+        upper: totalUpper,
+        range: totalUpper - totalLower
+      } : null;
+    };
+
+    // Current month with aggregated projections
+    const currentMonthExpenseProj = aggregateExpenseProjections(currentMonthKey);
+
     expenseChartData.push({
       month: currentMonthKey,
       actual: null,
       current: currentMonthExpense,
-      projected: avgExpense,
+      projected: null,
+      prophetProjected: currentMonthExpenseProj?.value || null,
+      prophetLower: currentMonthExpenseProj?.lower || null,
+      prophetUpper: currentMonthExpenseProj?.upper || null,
+      prophetRange: currentMonthExpenseProj?.range || null,
       isProjection: false,
       isCurrent: true
     });
 
-    // Add 12 month projection for expense
+    // Future projections
     for (let i = 1; i <= 12; i++) {
       const projDate = new Date(year, month - 1 + i, 1);
       const projMonthKey = `${projDate.getFullYear()}-${(projDate.getMonth() + 1).toString().padStart(2, '0')}`;
+      const futureExpenseProj = aggregateExpenseProjections(projMonthKey);
 
       expenseChartData.push({
         month: projMonthKey,
         actual: null,
         current: null,
-        projected: avgExpense,
+        projected: futureExpenseProj ? null : avgExpense,
+        prophetProjected: futureExpenseProj?.value || null,
+        prophetLower: futureExpenseProj?.lower || null,
+        prophetUpper: futureExpenseProj?.upper || null,
+        prophetRange: futureExpenseProj?.range || null,
         isProjection: true,
         isCurrent: false
       });
@@ -488,7 +589,7 @@ const Projections = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Total Income Chart */}
         <ChartContainer title="Total Income">
-          <LineChart data={incomeChartData}>
+          <ComposedChart data={incomeChartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey="month"
@@ -508,6 +609,30 @@ const Projections = () => {
               }}
             />
             <Legend />
+
+            {/* Confidence interval for income */}
+            {incomeChartData.some(d => d.prophetProjected !== null) && (
+              <>
+                <Area
+                  type="monotone"
+                  dataKey="prophetLower"
+                  stroke="none"
+                  fill="transparent"
+                  stackId="confidence"
+                  legendType="none"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="prophetRange"
+                  stroke="none"
+                  fill="#10b981"
+                  fillOpacity={0.2}
+                  stackId="confidence"
+                  name="Confidence Range"
+                />
+              </>
+            )}
+
             <Line
               type="monotone"
               dataKey="actual"
@@ -528,6 +653,16 @@ const Projections = () => {
             />
             <Line
               type="monotone"
+              dataKey="prophetProjected"
+              stroke="#10b981"
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              name="Projected (AI)"
+              dot={false}
+              connectNulls={true}
+            />
+            <Line
+              type="monotone"
               dataKey="projected"
               stroke="#10b981"
               strokeWidth={2}
@@ -536,12 +671,12 @@ const Projections = () => {
               dot={false}
               connectNulls={true}
             />
-          </LineChart>
+          </ComposedChart>
         </ChartContainer>
 
         {/* Total Expenses Chart */}
         <ChartContainer title="Total Expenses">
-          <LineChart data={expenseChartData}>
+          <ComposedChart data={expenseChartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey="month"
@@ -561,6 +696,30 @@ const Projections = () => {
               }}
             />
             <Legend />
+
+            {/* Confidence interval for expenses */}
+            {expenseChartData.some(d => d.prophetProjected !== null) && (
+              <>
+                <Area
+                  type="monotone"
+                  dataKey="prophetLower"
+                  stroke="none"
+                  fill="transparent"
+                  stackId="confidence"
+                  legendType="none"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="prophetRange"
+                  stroke="none"
+                  fill="#10b981"
+                  fillOpacity={0.2}
+                  stackId="confidence"
+                  name="Confidence Range"
+                />
+              </>
+            )}
+
             <Line
               type="monotone"
               dataKey="actual"
@@ -581,6 +740,16 @@ const Projections = () => {
             />
             <Line
               type="monotone"
+              dataKey="prophetProjected"
+              stroke="#10b981"
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              name="Projected (AI)"
+              dot={false}
+              connectNulls={true}
+            />
+            <Line
+              type="monotone"
               dataKey="projected"
               stroke="#10b981"
               strokeWidth={2}
@@ -589,7 +758,7 @@ const Projections = () => {
               dot={false}
               connectNulls={true}
             />
-          </LineChart>
+          </ComposedChart>
         </ChartContainer>
       </div>
 
