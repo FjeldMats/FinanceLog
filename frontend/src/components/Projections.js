@@ -645,11 +645,7 @@ const Projections = () => {
                     fill="#10b981"
                     fillOpacity={0.2}
                     name="Confidence Range"
-                    baseLine={(props) => {
-                      // Find the corresponding lower value for this data point
-                      const dataPoint = chartData.find(d => d.month === props.payload.month);
-                      return dataPoint ? dataPoint.prophetLower : 0;
-                    }}
+                    baseLine="prophetLower"
                   />
                 )}
 
