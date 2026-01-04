@@ -123,7 +123,7 @@ def get_projections(category):
         for tx in transactions:
             data.append({
                 'date': tx.transaction_date,
-                'amount': abs(tx.amount)
+                'amount': float(abs(tx.amount))  # Convert Decimal to float
             })
 
         # Create DataFrame and aggregate by month
@@ -140,8 +140,8 @@ def get_projections(category):
                 "message": f"Need at least 12 months of data. Found {len(df)} months."
             }), 400
 
-        # Create time series
-        ts = df.set_index('date')['amount']
+        # Create time series and ensure it's float type
+        ts = df.set_index('date')['amount'].astype(float)
 
         # Fit Holt-Winters Exponential Smoothing model
         # seasonal_periods=12 for yearly seasonality
