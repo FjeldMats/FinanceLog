@@ -638,23 +638,19 @@ const Projections = () => {
 
                 {/* Confidence interval area (only for Prophet) */}
                 {hasProphetData && (
-                  <>
-                    <Area
-                      type="monotone"
-                      dataKey="prophetLower"
-                      stroke="none"
-                      fill="transparent"
-                      name="Confidence Range Lower"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="prophetUpper"
-                      stroke="none"
-                      fill="#10b981"
-                      fillOpacity={0.2}
-                      name="Confidence Range"
-                    />
-                  </>
+                  <Area
+                    type="monotone"
+                    dataKey="prophetUpper"
+                    stroke="none"
+                    fill="#10b981"
+                    fillOpacity={0.2}
+                    name="Confidence Range"
+                    baseLine={(props) => {
+                      // Find the corresponding lower value for this data point
+                      const dataPoint = chartData.find(d => d.month === props.payload.month);
+                      return dataPoint ? dataPoint.prophetLower : 0;
+                    }}
+                  />
                 )}
 
                 <Line
