@@ -26,6 +26,10 @@ const Projections = () => {
   const getCategoryChartData = () => {
     const categoryData = {};
     const currentMonthData = {};
+    const incomeData = {};
+    const expenseData = {};
+    let currentMonthIncome = 0;
+    let currentMonthExpense = 0;
 
     // Initialize category tracking
     Object.keys(CATEGORY_OPTIONS).forEach(cat => {
@@ -41,6 +45,28 @@ const Projections = () => {
     transactions.forEach(tx => {
       const date = new Date(tx.transaction_date);
       const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+
+      // Track income and expenses separately
+      const isIncome = tx.category.trim() === 'Inntekt';
+      const amount = Math.abs(tx.amount);
+
+      // Track current month income/expense
+      if (monthKey === currentMonthKey) {
+        if (isIncome) {
+          currentMonthIncome += amount;
+        } else {
+          currentMonthExpense += amount;
+        }
+      } else {
+        // Track historical income/expense
+        if (isIncome) {
+          if (!incomeData[monthKey]) incomeData[monthKey] = 0;
+          incomeData[monthKey] += amount;
+        } else {
+          if (!expenseData[monthKey]) expenseData[monthKey] = 0;
+          expenseData[monthKey] += amount;
+        }
+      }
 
       // Determine which main category this transaction belongs to
       let mainCategory = tx.category.trim();
@@ -62,7 +88,7 @@ const Projections = () => {
 
       // Track current month separately
       if (monthKey === currentMonthKey) {
-        currentMonthData[mainCategory] += Math.abs(tx.amount);
+        currentMonthData[mainCategory] += amount;
         return;
       }
 
@@ -72,8 +98,105 @@ const Projections = () => {
       }
 
       // Add to category total
-      categoryData[mainCategory][monthKey] += Math.abs(tx.amount);
+      categoryData[mainCategory][monthKey] += amount;
     });
+
+    // Calculate income and expense totals chart data
+    const incomeMonths = Object.keys(incomeData).sort();
+    const expenseMonths = Object.keys(expenseData).sort();
+
+    // Calculate averages
+    let totalIncome = 0;
+    incomeMonths.forEach(month => {
+      totalIncome += incomeData[month] || 0;
+    });
+    const avgIncome = incomeMonths.length > 0 ? totalIncome / incomeMonths.length : 0;
+
+    let totalExpense = 0;
+    expenseMonths.forEach(month => {
+      totalExpense += expenseData[month] || 0;
+    });
+    const avgExpense = expenseMonths.length > 0 ? totalExpense / expenseMonths.length : 0;
+
+    // Get all unique months
+    const allMonths = [...new Set([...incomeMonths, ...expenseMonths])].sort();
+
+    // Build income chart data
+    const incomeChartData = [];
+    allMonths.forEach(month => {
+      incomeChartData.push({
+        month: month,
+        actual: incomeData[month] || 0,
+        current: null,
+        projected: avgIncome,
+        isProjection: false,
+        isCurrent: false
+      });
+    });
+
+    // Add current month for income
+    incomeChartData.push({
+      month: currentMonthKey,
+      actual: null,
+      current: currentMonthIncome,
+      projected: avgIncome,
+      isProjection: false,
+      isCurrent: true
+    });
+
+    // Add 12 month projection for income
+    const [year, month] = currentMonthKey.split('-').map(Number);
+    for (let i = 1; i <= 12; i++) {
+      const projDate = new Date(year, month - 1 + i, 1);
+      const projMonthKey = `${projDate.getFullYear()}-${(projDate.getMonth() + 1).toString().padStart(2, '0')}`;
+
+      incomeChartData.push({
+        month: projMonthKey,
+        actual: null,
+        current: null,
+        projected: avgIncome,
+        isProjection: true,
+        isCurrent: false
+      });
+    }
+
+    // Build expense chart data
+    const expenseChartData = [];
+    allMonths.forEach(month => {
+      expenseChartData.push({
+        month: month,
+        actual: expenseData[month] || 0,
+        current: null,
+        projected: avgExpense,
+        isProjection: false,
+        isCurrent: false
+      });
+    });
+
+    // Add current month for expense
+    expenseChartData.push({
+      month: currentMonthKey,
+      actual: null,
+      current: currentMonthExpense,
+      projected: avgExpense,
+      isProjection: false,
+      isCurrent: true
+    });
+
+    // Add 12 month projection for expense
+    for (let i = 1; i <= 12; i++) {
+      const projDate = new Date(year, month - 1 + i, 1);
+      const projMonthKey = `${projDate.getFullYear()}-${(projDate.getMonth() + 1).toString().padStart(2, '0')}`;
+
+      expenseChartData.push({
+        month: projMonthKey,
+        actual: null,
+        current: null,
+        projected: avgExpense,
+        isProjection: true,
+        isCurrent: false
+      });
+    }
 
     // For each category, calculate average and add current month + 12 month projection
     const chartDataByCategory = {};
@@ -116,8 +239,6 @@ const Projections = () => {
       });
 
       // Add 12 month projection
-      const [year, month] = currentMonthKey.split('-').map(Number);
-
       for (let i = 1; i <= 12; i++) {
         const projDate = new Date(year, month - 1 + i, 1);
         const projMonthKey = `${projDate.getFullYear()}-${(projDate.getMonth() + 1).toString().padStart(2, '0')}`;
@@ -135,10 +256,10 @@ const Projections = () => {
       chartDataByCategory[category] = chartData;
     });
 
-    return chartDataByCategory;
+    return { chartDataByCategory, incomeChartData, expenseChartData };
   };
 
-  const chartDataByCategory = getCategoryChartData();
+  const { chartDataByCategory, incomeChartData, expenseChartData } = getCategoryChartData();
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('nb-NO', {
@@ -157,9 +278,9 @@ const Projections = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-primary">Category Projections</h1>
+      <h1 className="text-3xl font-bold text-primary">Financial Projections</h1>
       <p className="text-gray-600">
-        Historical spending (complete months only) with 12-month projections based on average.
+        Historical data (complete months only) with 12-month projections based on average.
         <span className="ml-2 text-sm">
           <span className="inline-block w-3 h-3 bg-blue-500 mr-1"></span>Actual Data
           <span className="inline-block w-3 h-3 bg-orange-500 ml-3 mr-1"></span>Current Month (In Progress)
@@ -167,7 +288,123 @@ const Projections = () => {
         </span>
       </p>
 
+      {/* Income and Expense Overview */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Total Income Chart */}
+        <div className="bg-table p-6 rounded-lg shadow">
+          <h2 className="text-xl font-bold text-primary mb-4">Total Income</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={incomeChartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="month"
+                tickFormatter={formatMonth}
+                angle={-45}
+                textAnchor="end"
+                height={80}
+              />
+              <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
+              <Tooltip
+                formatter={(value, name) => [formatCurrency(value), name]}
+                labelFormatter={formatMonth}
+                contentStyle={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px'
+                }}
+              />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="actual"
+                stroke="#3b82f6"
+                strokeWidth={3}
+                name="Actual Income"
+                dot={{ r: 4, fill: '#3b82f6' }}
+                connectNulls={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="current"
+                stroke="#f97316"
+                strokeWidth={3}
+                name="Current Month"
+                dot={{ r: 6, fill: '#f97316', strokeWidth: 2, stroke: '#fff' }}
+                connectNulls={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="projected"
+                stroke="#10b981"
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                name="Projected Average"
+                dot={false}
+                connectNulls={true}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Total Expenses Chart */}
+        <div className="bg-table p-6 rounded-lg shadow">
+          <h2 className="text-xl font-bold text-primary mb-4">Total Expenses</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={expenseChartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="month"
+                tickFormatter={formatMonth}
+                angle={-45}
+                textAnchor="end"
+                height={80}
+              />
+              <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
+              <Tooltip
+                formatter={(value, name) => [formatCurrency(value), name]}
+                labelFormatter={formatMonth}
+                contentStyle={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px'
+                }}
+              />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="actual"
+                stroke="#3b82f6"
+                strokeWidth={3}
+                name="Actual Expenses"
+                dot={{ r: 4, fill: '#3b82f6' }}
+                connectNulls={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="current"
+                stroke="#f97316"
+                strokeWidth={3}
+                name="Current Month"
+                dot={{ r: 6, fill: '#f97316', strokeWidth: 2, stroke: '#fff' }}
+                connectNulls={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="projected"
+                stroke="#10b981"
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                name="Projected Average"
+                dot={false}
+                connectNulls={true}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
       {/* Category Charts */}
+      <h2 className="text-2xl font-bold text-primary mt-8">Category Breakdown</h2>
       {Object.keys(CATEGORY_OPTIONS).map(category => {
         const chartData = chartDataByCategory[category] || [];
 
