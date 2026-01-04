@@ -394,6 +394,10 @@ const Projections = () => {
       }
 
       // Add current month with both actual (so far) and projection (full month)
+      const currentProphetRange = currentMonthProjection
+        ? currentMonthProjection.upper - currentMonthProjection.lower
+        : null;
+
       chartData.push({
         month: currentMonthKey,
         actual: null,
@@ -402,6 +406,7 @@ const Projections = () => {
         prophetProjected: currentMonthProjection ? currentMonthProjection.value : null,
         prophetLower: currentMonthProjection ? currentMonthProjection.lower : null,
         prophetUpper: currentMonthProjection ? currentMonthProjection.upper : null,
+        prophetRange: currentProphetRange,
         isProjection: false,
         isCurrent: true
       });
@@ -410,6 +415,7 @@ const Projections = () => {
       if (prophetData && futureProjections.length > 0) {
         // Use Prophet projections for future months
         futureProjections.forEach(proj => {
+          const range = proj.upper - proj.lower;
           chartData.push({
             month: proj.date,
             actual: null,
@@ -418,6 +424,7 @@ const Projections = () => {
             prophetProjected: proj.value,
             prophetLower: proj.lower,
             prophetUpper: proj.upper,
+            prophetRange: range,
             isProjection: true,
             isCurrent: false
           });
@@ -637,16 +644,27 @@ const Projections = () => {
                 <Legend />
 
                 {/* Confidence interval area (only for Prophet) */}
+                {/* Use stacked areas: invisible lower bound + visible range */}
                 {hasProphetData && (
-                  <Area
-                    type="monotone"
-                    dataKey="prophetUpper"
-                    stroke="none"
-                    fill="#10b981"
-                    fillOpacity={0.2}
-                    name="Confidence Range"
-                    baseLine="prophetLower"
-                  />
+                  <>
+                    <Area
+                      type="monotone"
+                      dataKey="prophetLower"
+                      stroke="none"
+                      fill="transparent"
+                      stackId="confidence"
+                      legendType="none"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="prophetRange"
+                      stroke="none"
+                      fill="#10b981"
+                      fillOpacity={0.2}
+                      stackId="confidence"
+                      name="Confidence Range"
+                    />
+                  </>
                 )}
 
                 <Line
