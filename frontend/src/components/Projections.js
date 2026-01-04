@@ -558,6 +558,71 @@ const Projections = () => {
 
   const { chartDataByCategory, incomeChartData, expenseChartData } = getCategoryChartData();
 
+  // Calculate savings/loss chart data (Income - Expenses)
+  const getSavingsChartData = () => {
+    const savingsData = [];
+
+    // Create a map of all months from both income and expense data
+    const allMonths = new Set();
+    incomeChartData.forEach(d => allMonths.add(d.month));
+    expenseChartData.forEach(d => allMonths.add(d.month));
+
+    // Sort months chronologically
+    const sortedMonths = Array.from(allMonths).sort();
+
+    sortedMonths.forEach(month => {
+      const incomeEntry = incomeChartData.find(d => d.month === month);
+      const expenseEntry = expenseChartData.find(d => d.month === month);
+
+      // Calculate actual savings (income - expenses)
+      const actualIncome = incomeEntry?.actual || 0;
+      const actualExpense = expenseEntry?.actual || 0;
+      const actualSavings = actualIncome > 0 || actualExpense > 0 ? actualIncome - actualExpense : null;
+
+      // Calculate current month savings
+      const currentIncome = incomeEntry?.current || 0;
+      const currentExpense = expenseEntry?.current || 0;
+      const currentSavings = currentIncome > 0 || currentExpense > 0 ? currentIncome - currentExpense : null;
+
+      // Calculate projected savings (Prophet or average)
+      const projectedIncome = incomeEntry?.prophetProjected || incomeEntry?.projected || 0;
+      const projectedExpense = expenseEntry?.prophetProjected || expenseEntry?.projected || 0;
+      const projectedSavings = (incomeEntry?.prophetProjected || incomeEntry?.projected) &&
+                               (expenseEntry?.prophetProjected || expenseEntry?.projected)
+                               ? projectedIncome - projectedExpense : null;
+
+      // Calculate confidence intervals for Prophet projections
+      let prophetLower = null;
+      let prophetUpper = null;
+      let prophetRange = null;
+
+      if (incomeEntry?.prophetLower && expenseEntry?.prophetUpper) {
+        // Best case: high income, low expenses
+        prophetUpper = incomeEntry.prophetUpper - expenseEntry.prophetLower;
+        // Worst case: low income, high expenses
+        prophetLower = incomeEntry.prophetLower - expenseEntry.prophetUpper;
+        prophetRange = prophetUpper - prophetLower;
+      }
+
+      savingsData.push({
+        month,
+        actual: actualSavings,
+        current: currentSavings,
+        projected: projectedSavings,
+        prophetProjected: projectedSavings,
+        prophetLower,
+        prophetUpper,
+        prophetRange,
+        isProjection: incomeEntry?.isProjection || expenseEntry?.isProjection || false,
+        isCurrent: incomeEntry?.isCurrent || expenseEntry?.isCurrent || false
+      });
+    });
+
+    return savingsData;
+  };
+
+  const savingsChartData = getSavingsChartData();
+
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('nb-NO', {
       style: 'currency',
@@ -761,6 +826,135 @@ const Projections = () => {
           </ComposedChart>
         </ChartContainer>
       </div>
+
+      {/* Net Savings/Loss Chart */}
+      <h2 className="text-2xl font-bold text-primary mt-8">Net Savings / Loss</h2>
+      <p className="text-gray-600 mb-4">
+        Monthly savings (Income - Expenses) with AI-powered projections.
+        <span className="ml-2 text-sm">
+          <span className="inline-block w-3 h-3 bg-green-600 mr-1"></span>Positive (Savings)
+          <span className="inline-block w-3 h-3 bg-red-600 ml-3 mr-1"></span>Negative (Loss)
+        </span>
+      </p>
+
+      <ChartContainer title="Monthly Savings / Loss" height={400}>
+        <ComposedChart data={savingsChartData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis
+            dataKey="month"
+            tickFormatter={formatMonth}
+            angle={-45}
+            textAnchor="end"
+            height={80}
+          />
+          <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
+          <Tooltip
+            formatter={(value, name) => [formatCurrency(value), name]}
+            labelFormatter={formatMonth}
+            contentStyle={{
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              border: '1px solid #ccc',
+              borderRadius: '4px'
+            }}
+          />
+          <Legend />
+
+          {/* Zero reference line */}
+          <Line
+            type="monotone"
+            dataKey={() => 0}
+            stroke="#94a3b8"
+            strokeWidth={1}
+            strokeDasharray="3 3"
+            dot={false}
+            legendType="none"
+          />
+
+          {/* Confidence interval */}
+          {savingsChartData.some(d => d.prophetLower !== null) && (
+            <>
+              <Area
+                type="monotone"
+                dataKey="prophetLower"
+                stroke="none"
+                fill="transparent"
+                stackId="confidence"
+                legendType="none"
+              />
+              <Area
+                type="monotone"
+                dataKey="prophetRange"
+                stroke="none"
+                fill="#10b981"
+                fillOpacity={0.2}
+                stackId="confidence"
+                name="Confidence Range"
+              />
+            </>
+          )}
+
+          {/* Actual savings - color based on positive/negative */}
+          <Line
+            type="monotone"
+            dataKey="actual"
+            stroke="#3b82f6"
+            strokeWidth={3}
+            name="Actual Savings"
+            dot={(props) => {
+              const { cx, cy, payload } = props;
+              const value = payload.actual;
+              if (value === null) return null;
+              return (
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={4}
+                  fill={value >= 0 ? '#10b981' : '#ef4444'}
+                  stroke={value >= 0 ? '#10b981' : '#ef4444'}
+                />
+              );
+            }}
+            connectNulls={false}
+          />
+
+          {/* Current month */}
+          <Line
+            type="monotone"
+            dataKey="current"
+            stroke="#f97316"
+            strokeWidth={3}
+            name="Current Month"
+            dot={(props) => {
+              const { cx, cy, payload } = props;
+              const value = payload.current;
+              if (value === null) return null;
+              return (
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={6}
+                  fill={value >= 0 ? '#10b981' : '#ef4444'}
+                  stroke="#fff"
+                  strokeWidth={2}
+                />
+              );
+            }}
+            connectNulls={false}
+          />
+
+          {/* Projected savings */}
+          <Line
+            type="monotone"
+            dataKey="prophetProjected"
+            stroke="#10b981"
+            strokeWidth={2}
+            strokeDasharray="5 5"
+            name="Projected Savings"
+            dot={false}
+            connectNulls={true}
+          />
+        </ComposedChart>
+      </ChartContainer>
 
       {/* Category Charts */}
       <h2 className="text-2xl font-bold text-primary mt-8">Category Breakdown</h2>
