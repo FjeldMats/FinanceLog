@@ -6,6 +6,6 @@ ANSIBLE_HOSTS="./ansible/hosts"
 SSH_KEY="~/.ssh/id_rsa" # Path to your SSH private key
 
 # Run the Ansible playbook
-# Note: Only prompts for sudo password during initial Docker installation
-# After user is added to docker group, subsequent deployments won't need sudo
-ansible-playbook -i "$ANSIBLE_HOSTS" "$ANSIBLE_PLAYBOOK" --private-key "$SSH_KEY" --ask-become-pass
+# Note: Requires passwordless sudo to be configured on the remote server
+# If you get permission errors, run: ./setup-passwordless.sh first
+ansible-playbook -i "$ANSIBLE_HOSTS" "$ANSIBLE_PLAYBOOK" --private-key "$SSH_KEY"
