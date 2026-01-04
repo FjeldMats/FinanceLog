@@ -203,12 +203,14 @@ graph TD
 ```bash
 cd deployment
 ./start_ansible.sh
+# You'll be prompted for sudo password on first run (to install Docker)
+# After that, no password needed for deployments!
 ```
 
 Or manually:
 ```bash
 cd deployment
-ansible-playbook -i ./ansible/hosts ./ansible/deploy.yml --private-key ~/.ssh/id_rsa --vault-password-file .vault_pass
+ansible-playbook -i ./ansible/hosts ./ansible/deploy.yml --private-key ~/.ssh/id_rsa --ask-become-pass
 ```
 
 **Local development:**
@@ -243,17 +245,9 @@ docker compose up -d
    ```bash
    cp deployment/ansible/hosts.example deployment/ansible/hosts
    # Edit deployment/ansible/hosts and set your server IP and username
-
-   cp deployment/.vault_pass.example deployment/.vault_pass
-   # Edit deployment/.vault_pass and set your Ansible vault password
-
-   # Create encrypted vars file with sudo password
-   cd deployment
-   ansible-vault create --vault-password-file=.vault_pass ansible/vars.yml
-   # Add the following content:
-   # ---
-   # ansible_become_pass: "YOUR_SUDO_PASSWORD"
    ```
+
+   **Note:** The playbook automatically adds your user to the `docker` group, so you only need to enter your sudo password during initial setup. Subsequent deployments won't require sudo for Docker commands.
 
 4. **Generate Secure SECRET_KEY:**
    ```bash
