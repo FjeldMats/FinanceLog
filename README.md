@@ -1,6 +1,18 @@
 # FinanceLog
 
-A personal finance tracking application for managing income and expenses with visual analytics.
+A personal finance tracking application for managing income and expenses with **AI-powered projections** and visual analytics.
+
+## ✨ What's New
+
+### 🤖 AI-Powered Financial Projections (Latest Update)
+- **Prophet Forecasting**: Uses Meta's industry-leading Prophet library for accurate predictions
+- **12-Month Forecasts**: See future income, expenses, and savings projections
+- **Confidence Intervals**: Visual uncertainty bands show prediction reliability
+- **Category-Level Analysis**: Individual forecasts for each spending category
+- **Seamless Visualization**: Smooth transitions from historical to projected data
+- **Instant Performance**: No animation delays, charts load immediately
+
+The new **Projections** tab provides intelligent forecasting based on your historical transaction data, helping you plan ahead and make informed financial decisions.
 
 ## 🚀 Quick Start
 
@@ -124,24 +136,28 @@ graph TB
 
 ## Tech Stack
 
-- **Backend**: Flask (Python), SQLAlchemy ORM
+- **Backend**: Flask (Python), SQLAlchemy ORM, Prophet (Meta's forecasting library)
 - **Frontend**: React, Recharts for visualizations, Tailwind CSS
 - **Database**: PostgreSQL 17
 - **Deployment**: Docker Compose, Ansible
+- **AI/ML**: Prophet for time-series forecasting and projections
 
 ## Key Components
 
 ### Backend (`backend/`)
-- **`app/routes.py`** - API endpoints (GET/POST/PUT/DELETE transactions)
+- **`app/routes.py`** - API endpoints (transactions, projections)
 - **`app/models.py`** - Database models (Transaction, User)
+- **`app/prophet_service.py`** - 🆕 Prophet forecasting service for AI projections
 - **`config.py`** - Database connection and environment config
 - **`run.py`** - Application entry point
+- **`requirements.txt`** - Python dependencies including Prophet
 
 ### Frontend (`frontend/src/`)
 - **`components/Dashboard.js`** - Main dashboard with charts
 - **`components/TransactionTable.js`** - View/edit/delete transactions with filters
 - **`components/TransactionForm.js`** - Add new transactions
 - **`components/Categories.js`** - Category breakdown view
+- **`components/Projections.js`** - 🆕 AI-powered financial projections with Prophet
 - **`components/BarChartView.js`** - Monthly expenditure chart
 - **`components/IncomeBarChartView.js`** - Monthly income chart
 - **`components/StackedChartView.js`** - Expenditure breakdown by category
@@ -185,12 +201,42 @@ erDiagram
 - `username` - Unique username (NOT NULL)
 - `password_hash` - Hashed password (NOT NULL)
 
+## Features
+
+### 📊 Financial Tracking
+- **Transaction Management**: Add, edit, delete, and filter transactions
+- **Category Breakdown**: Visualize spending by category with interactive charts
+- **Income & Expense Tracking**: Separate views for income and expenses
+- **Monthly Analysis**: Track trends over time with historical data
+
+### 🤖 AI-Powered Projections (NEW!)
+- **Prophet Forecasting**: Uses Meta's Prophet library for accurate time-series predictions
+- **12-Month Projections**: See future income, expenses, and savings predictions
+- **Confidence Intervals**: Visual uncertainty bands show prediction reliability
+- **Category-Level Forecasting**: Individual projections for each spending category
+- **Seamless Visualization**: Smooth transitions from historical to projected data
+- **Real-time Updates**: Projections update as you add new transactions
+
+### 📈 Advanced Visualizations
+- **Interactive Charts**: Hover tooltips with detailed information
+- **No Animation Delays**: Instant chart loading for better performance
+- **Dashed Projection Lines**: Clear visual distinction between actual and projected data
+- **Color-Coded Insights**: Green for savings, red for losses, orange for current month
+- **Responsive Design**: Works on desktop and mobile devices
+
 ## API Endpoints
 
+### Transaction Management
 - `GET /api/transactions` - Get all transactions (supports filtering)
 - `POST /api/transaction` - Add new transaction
 - `PUT /api/transaction/:id` - Update transaction
 - `DELETE /api/transaction/:id` - Delete transaction
+
+### AI Projections (NEW!)
+- `GET /api/projections/<category>` - Get Prophet-based projections for a category
+  - Returns 12-month forecast with confidence intervals
+  - Automatically trains on historical transaction data
+  - Supports all expense categories plus "Income" and "Total"
 
 ### API Flow
 
@@ -346,6 +392,42 @@ cp deployment/ansible/hosts.example deployment/ansible/hosts
 | `SECRET_KEY` | `.env` | Flask secret key | `64-char hex string` |
 | `ansible_user` | `deployment/ansible/hosts` | SSH username | `mats` |
 | Server IP | `deployment/ansible/hosts` | Remote server IP | `10.0.0.29` |
+
+## AI-Powered Projections
+
+### How It Works
+
+The Projections feature uses **Meta's Prophet** library to forecast future financial trends based on your historical transaction data.
+
+#### Prophet Forecasting
+- **Time-Series Analysis**: Prophet analyzes patterns in your spending and income over time
+- **Seasonality Detection**: Automatically detects weekly, monthly, and yearly patterns
+- **Trend Analysis**: Identifies long-term trends in your financial behavior
+- **Uncertainty Quantification**: Provides confidence intervals showing prediction reliability
+
+#### What You See
+1. **Total Income Projections**: 12-month forecast of expected income
+2. **Total Expense Projections**: 12-month forecast of expected expenses
+3. **Net Savings/Loss**: Projected monthly savings (income - expenses)
+4. **Category Breakdown**: Individual projections for each spending category
+
+#### Visual Elements
+- **Solid Blue Line**: Historical actual data
+- **Orange Dot**: Current month (in progress)
+- **Dashed Green Line**: AI-powered projections
+- **Shaded Area**: Confidence interval (prediction uncertainty)
+- **Tooltips**: Hover for detailed values and ranges
+
+#### Data Requirements
+- **Minimum**: 2 months of historical data
+- **Optimal**: 6+ months for better accuracy
+- **Updates**: Projections automatically refresh when you add new transactions
+
+### Example Use Cases
+- **Budget Planning**: See if you're on track to meet savings goals
+- **Expense Forecasting**: Predict upcoming expenses for better cash flow management
+- **Income Planning**: Anticipate income fluctuations and plan accordingly
+- **Category Analysis**: Identify which categories are trending up or down
 
 ## Common Tasks
 
@@ -552,11 +634,16 @@ erDiagram
 ```
 
 ### Features
+- [x] **AI-Powered Projections** - Prophet-based forecasting (COMPLETED!)
+- [x] **Confidence Intervals** - Visual uncertainty bands (COMPLETED!)
+- [x] **Category-Level Forecasting** - Individual projections per category (COMPLETED!)
 - [ ] Budget tracking and alerts
 - [ ] Recurring transaction support
 - [ ] Export data to CSV/Excel
 - [ ] Mobile responsive improvements
 - [ ] Dark mode toggle
+- [ ] Savings goals and progress tracking
+- [ ] Custom date range filtering
 
 ### Infrastructure
 - [ ] Automated database backups
@@ -566,8 +653,22 @@ erDiagram
 
 ## Notes
 
+### General
 - Transactions with positive amounts are income, negative amounts are expenses
 - Month filters show in reverse chronological order (latest first)
 - Search in TransactionTable matches both description and subcategory fields
 - All dashboard cards use consistent styling with `bg-table` class
+
+### Projections
+- Prophet requires at least 2 data points (months) to generate forecasts
+- More historical data (6+ months) produces more accurate projections
+- Projections automatically update when new transactions are added
+- Confidence intervals widen for longer-term predictions (normal behavior)
+- The current month shows partial actual data plus full-month projection
+- Dashed lines indicate projected values, solid lines show actual data
+
+### Performance
+- Charts load instantly with animations disabled for better UX
+- Prophet forecasts are cached and computed on-demand
+- Backend uses efficient SQLAlchemy queries with proper indexing
 
