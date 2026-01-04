@@ -25,13 +25,15 @@ const Projections = () => {
   // Calculate category data with historical months + 12 month projection
   const getCategoryChartData = () => {
     const categoryData = {};
+    const currentMonthData = {};
 
     // Initialize category tracking
     Object.keys(CATEGORY_OPTIONS).forEach(cat => {
       categoryData[cat] = {};
+      currentMonthData[cat] = 0;
     });
 
-    // Get current month to exclude incomplete data
+    // Get current month
     const now = new Date();
     const currentMonthKey = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
 
@@ -39,11 +41,6 @@ const Projections = () => {
     transactions.forEach(tx => {
       const date = new Date(tx.transaction_date);
       const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-
-      // Skip current month (incomplete data)
-      if (monthKey === currentMonthKey) {
-        return;
-      }
 
       // Determine which main category this transaction belongs to
       let mainCategory = tx.category.trim();
@@ -63,6 +60,12 @@ const Projections = () => {
         return;
       }
 
+      // Track current month separately
+      if (monthKey === currentMonthKey) {
+        currentMonthData[mainCategory] += Math.abs(tx.amount);
+        return;
+      }
+
       // Initialize month for this category if needed
       if (!categoryData[mainCategory][monthKey]) {
         categoryData[mainCategory][monthKey] = 0;
@@ -72,7 +75,7 @@ const Projections = () => {
       categoryData[mainCategory][monthKey] += Math.abs(tx.amount);
     });
 
-    // For each category, calculate average and add 12 month projection
+    // For each category, calculate average and add current month + 12 month projection
     const chartDataByCategory = {};
 
     Object.keys(CATEGORY_OPTIONS).forEach(category => {
@@ -86,7 +89,7 @@ const Projections = () => {
       });
       const average = months.length > 0 ? total / months.length : 0;
 
-      // Build chart data: historical + 12 month projection
+      // Build chart data: historical + current month + 12 month projection
       const chartData = [];
 
       // Add historical data with projection line
@@ -94,27 +97,39 @@ const Projections = () => {
         chartData.push({
           month: month,
           actual: monthlyAmounts[month],
+          current: null,
           projected: average,
-          isProjection: false
+          isProjection: false,
+          isCurrent: false
         });
       });
 
+      // Add current month (in progress)
+      const currentAmount = currentMonthData[category] || 0;
+      chartData.push({
+        month: currentMonthKey,
+        actual: null,
+        current: currentAmount,
+        projected: average,
+        isProjection: false,
+        isCurrent: true
+      });
+
       // Add 12 month projection
-      const lastMonth = months.length > 0 ? months[months.length - 1] : null;
-      if (lastMonth) {
-        const [year, month] = lastMonth.split('-').map(Number);
+      const [year, month] = currentMonthKey.split('-').map(Number);
 
-        for (let i = 1; i <= 12; i++) {
-          const projDate = new Date(year, month - 1 + i, 1);
-          const projMonthKey = `${projDate.getFullYear()}-${(projDate.getMonth() + 1).toString().padStart(2, '0')}`;
+      for (let i = 1; i <= 12; i++) {
+        const projDate = new Date(year, month - 1 + i, 1);
+        const projMonthKey = `${projDate.getFullYear()}-${(projDate.getMonth() + 1).toString().padStart(2, '0')}`;
 
-          chartData.push({
-            month: projMonthKey,
-            actual: null,
-            projected: average,
-            isProjection: true
-          });
-        }
+        chartData.push({
+          month: projMonthKey,
+          actual: null,
+          current: null,
+          projected: average,
+          isProjection: true,
+          isCurrent: false
+        });
       }
 
       chartDataByCategory[category] = chartData;
@@ -147,6 +162,7 @@ const Projections = () => {
         Historical spending (complete months only) with 12-month projections based on average.
         <span className="ml-2 text-sm">
           <span className="inline-block w-3 h-3 bg-blue-500 mr-1"></span>Actual Data
+          <span className="inline-block w-3 h-3 bg-orange-500 ml-3 mr-1"></span>Current Month (In Progress)
           <span className="inline-block w-3 h-3 bg-green-500 ml-3 mr-1"></span>Projected Average
         </span>
       </p>
@@ -170,7 +186,12 @@ const Projections = () => {
                 />
                 <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
                 <Tooltip
-                  formatter={(value) => formatCurrency(value)}
+                  formatter={(value, name) => {
+                    if (name === "Current Month (In Progress)") {
+                      return [formatCurrency(value), name];
+                    }
+                    return [formatCurrency(value), name];
+                  }}
                   labelFormatter={formatMonth}
                   contentStyle={{
                     backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -186,6 +207,15 @@ const Projections = () => {
                   strokeWidth={3}
                   name="Actual Spending"
                   dot={{ r: 4, fill: '#3b82f6' }}
+                  connectNulls={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="current"
+                  stroke="#f97316"
+                  strokeWidth={3}
+                  name="Current Month (In Progress)"
+                  dot={{ r: 6, fill: '#f97316', strokeWidth: 2, stroke: '#fff' }}
                   connectNulls={false}
                 />
                 <Line
