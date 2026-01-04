@@ -10,6 +10,7 @@ database/env
 database/data
 *.sql
 backup*.sql
+/backups/
 
 # Environment files
 .env
