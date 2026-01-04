@@ -20,15 +20,15 @@ const Projections = () => {
   // Calculate historical averages
   const calculateHistoricalData = () => {
     const monthlyData = {};
-    
+
     transactions.forEach(tx => {
       const date = new Date(tx.transaction_date);
       const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-      
+
       if (!monthlyData[monthKey]) {
         monthlyData[monthKey] = { income: 0, expenses: 0 };
       }
-      
+
       if (tx.category.trim() === 'Inntekt') {
         monthlyData[monthKey].income += tx.amount;
       } else {
@@ -37,25 +37,25 @@ const Projections = () => {
     });
 
     const months = Object.keys(monthlyData).sort();
-    const recentMonths = months.slice(-6); // Last 6 months for average
-    
+    const allMonths = months; // Use ALL months instead of just last 6
+
     let totalIncome = 0;
     let totalExpenses = 0;
-    
-    recentMonths.forEach(month => {
+
+    allMonths.forEach(month => {
       totalIncome += monthlyData[month].income;
       totalExpenses += monthlyData[month].expenses;
     });
-    
-    const avgIncome = recentMonths.length > 0 ? totalIncome / recentMonths.length : 0;
-    const avgExpenses = recentMonths.length > 0 ? totalExpenses / recentMonths.length : 0;
-    
-    return { avgIncome, avgExpenses, monthlyData };
+
+    const avgIncome = allMonths.length > 0 ? totalIncome / allMonths.length : 0;
+    const avgExpenses = allMonths.length > 0 ? totalExpenses / allMonths.length : 0;
+
+    return { avgIncome, avgExpenses, monthlyData, totalMonths: allMonths.length };
   };
 
   // Generate projection data
   const generateProjections = () => {
-    const { avgIncome, avgExpenses } = calculateHistoricalData();
+    const { avgIncome, avgExpenses, totalMonths } = calculateHistoricalData();
     
     // Apply adjustments (percentage)
     const projectedIncome = avgIncome * (1 + incomeAdjustment / 100);
@@ -82,10 +82,10 @@ const Projections = () => {
       });
     }
     
-    return { projections, avgIncome, avgExpenses, projectedIncome, projectedExpenses, monthlySavings };
+    return { projections, avgIncome, avgExpenses, projectedIncome, projectedExpenses, monthlySavings, totalMonths };
   };
 
-  const { projections, avgIncome, avgExpenses, projectedIncome, projectedExpenses, monthlySavings } = generateProjections();
+  const { projections, avgIncome, avgExpenses, projectedIncome, projectedExpenses, monthlySavings, totalMonths } = generateProjections();
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('nb-NO', {
@@ -111,13 +111,13 @@ const Projections = () => {
         <div className="bg-table p-4 rounded-lg shadow">
           <h3 className="text-sm text-gray-600 mb-1">Avg Monthly Income</h3>
           <p className="text-2xl font-bold text-green-600">{formatCurrency(avgIncome)}</p>
-          <p className="text-xs text-gray-500 mt-1">Last 6 months</p>
+          <p className="text-xs text-gray-500 mt-1">All historical data ({totalMonths} months)</p>
         </div>
-        
+
         <div className="bg-table p-4 rounded-lg shadow">
           <h3 className="text-sm text-gray-600 mb-1">Avg Monthly Expenses</h3>
           <p className="text-2xl font-bold text-red-600">{formatCurrency(avgExpenses)}</p>
-          <p className="text-xs text-gray-500 mt-1">Last 6 months</p>
+          <p className="text-xs text-gray-500 mt-1">All historical data ({totalMonths} months)</p>
         </div>
         
         <div className="bg-table p-4 rounded-lg shadow">
