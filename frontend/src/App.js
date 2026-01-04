@@ -4,6 +4,7 @@ import Dashboard from './components/Dashboard';
 import TransactionForm from './components/TransactionForm';
 import TransactionTable from './components/TransactionTable';
 import Categories from './components/Categories';
+import Projections from './components/Projections';
 
 const App = () => {
   return (
@@ -11,24 +12,29 @@ const App = () => {
       <div className="min-h-screen bg-background">
         <header>
           <nav className="flex justify-center gap-5 bg-background py-3 px-4 border-b-2 border-border">
-            <NavLink to="/" 
-              className={({ isActive }) => 
-                `nav-link ${isActive ? 'active-link' : ''}`} 
+            <NavLink to="/"
+              className={({ isActive }) =>
+                `nav-link ${isActive ? 'active-link' : ''}`}
               end>
               Dashboard
             </NavLink>
-            <NavLink to="/categories" 
-              className={({ isActive }) => 
+            <NavLink to="/categories"
+              className={({ isActive }) =>
                 `nav-link ${isActive ? 'active-link' : ''}`}>
               Categories
             </NavLink>
-            <NavLink to="/add-transaction" 
-              className={({ isActive }) => 
+            <NavLink to="/projections"
+              className={({ isActive }) =>
+                `nav-link ${isActive ? 'active-link' : ''}`}>
+              Projections
+            </NavLink>
+            <NavLink to="/add-transaction"
+              className={({ isActive }) =>
                 `nav-link ${isActive ? 'active-link' : ''}`}>
               Add Transaction
             </NavLink>
-            <NavLink to="/transactions" 
-              className={({ isActive }) => 
+            <NavLink to="/transactions"
+              className={({ isActive }) =>
                 `nav-link ${isActive ? 'active-link' : ''}`}>
               View Transactions
             </NavLink>
@@ -40,6 +46,7 @@ const App = () => {
             <Route path="/add-transaction" element={<TransactionForm />} />
             <Route path="/transactions" element={<TransactionTable />} />
             <Route path="/categories" element={<Categories />} />
+            <Route path="/projections" element={<Projections />} />
           </Routes>
         </main>
       </div>
