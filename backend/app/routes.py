@@ -155,8 +155,22 @@ def get_projections(category):
 
         fitted_model = model.fit()
 
-        # Forecast 12 months ahead
-        forecast = fitted_model.forecast(steps=12)
+        # Determine if current month is incomplete
+        now = datetime.now()
+        current_month_start = pd.Timestamp(year=now.year, month=now.month, day=1)
+        last_data_month = ts.index[-1]
+
+        # Check if the last data point is the current month (incomplete)
+        is_current_month_incomplete = (
+            last_data_month.year == now.year and
+            last_data_month.month == now.month
+        )
+
+        # Forecast ahead
+        # If current month is incomplete, we need 13 forecasts (current month + 12 future)
+        # Otherwise, we need 12 forecasts
+        forecast_steps = 13 if is_current_month_incomplete else 12
+        forecast = fitted_model.forecast(steps=forecast_steps)
 
         # Calculate confidence intervals (simple approach using standard error)
         residuals = fitted_model.resid
@@ -166,7 +180,8 @@ def get_projections(category):
         # Prepare response
         result = {
             'historical': [],
-            'projected': []
+            'projected': [],
+            'current_month_actual': None  # Actual spending so far this month
         }
 
         # Historical data
@@ -177,7 +192,17 @@ def get_projections(category):
             })
 
         # Projected data with confidence intervals
-        forecast_dates = pd.date_range(start=ts.index[-1] + pd.DateOffset(months=1), periods=12, freq='MS')
+        if is_current_month_incomplete:
+            # First forecast is for current month (full month projection)
+            # Store the actual partial spending
+            result['current_month_actual'] = float(ts.iloc[-1])
+
+            # Start projections from current month
+            forecast_dates = pd.date_range(start=current_month_start, periods=13, freq='MS')
+        else:
+            # Start projections from next month
+            forecast_dates = pd.date_range(start=ts.index[-1] + pd.DateOffset(months=1), periods=12, freq='MS')
+
         for date, value in zip(forecast_dates, forecast):
             result['projected'].append({
                 'date': date.strftime('%Y-%m'),

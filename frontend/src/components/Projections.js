@@ -297,24 +297,43 @@ const Projections = () => {
         });
       });
 
-      // Add current month (in progress)
+      // Add current month (in progress) and projections
       const currentAmount = currentMonthData[category] || 0;
+
+      // Check if Prophet data includes current month projection
+      let currentMonthProjection = null;
+      let futureProjections = [];
+
+      if (prophetData && prophetData.projected && prophetData.projected.length > 0) {
+        // Check if first projection is for current month
+        const firstProjMonth = prophetData.projected[0].date;
+        if (firstProjMonth === currentMonthKey) {
+          // Current month has a projection
+          currentMonthProjection = prophetData.projected[0];
+          futureProjections = prophetData.projected.slice(1);
+        } else {
+          // All projections are for future months
+          futureProjections = prophetData.projected;
+        }
+      }
+
+      // Add current month with both actual (so far) and projection (full month)
       chartData.push({
         month: currentMonthKey,
         actual: null,
         current: currentAmount,
         projected: null,
-        prophetProjected: null,
-        prophetLower: null,
-        prophetUpper: null,
+        prophetProjected: currentMonthProjection ? currentMonthProjection.value : null,
+        prophetLower: currentMonthProjection ? currentMonthProjection.lower : null,
+        prophetUpper: currentMonthProjection ? currentMonthProjection.upper : null,
         isProjection: false,
         isCurrent: true
       });
 
-      // Add 12 month projection using Prophet if available, otherwise use simple average
-      if (prophetData && prophetData.projected) {
-        // Use Prophet projections
-        prophetData.projected.forEach(proj => {
+      // Add future month projections using Prophet if available, otherwise use simple average
+      if (prophetData && futureProjections.length > 0) {
+        // Use Prophet projections for future months
+        futureProjections.forEach(proj => {
           chartData.push({
             month: proj.date,
             actual: null,
