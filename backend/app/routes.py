@@ -143,18 +143,6 @@ def get_projections(category):
         # Create time series and ensure it's float type
         ts = df.set_index('date')['amount'].astype(float)
 
-        # Fit Holt-Winters Exponential Smoothing model
-        # seasonal_periods=12 for yearly seasonality
-        model = ExponentialSmoothing(
-            ts,
-            seasonal_periods=12,
-            trend='add',
-            seasonal='add',
-            initialization_method='estimated'
-        )
-
-        fitted_model = model.fit()
-
         # Determine if current month is incomplete
         now = datetime.now()
         current_month_start = pd.Timestamp(year=now.year, month=now.month, day=1)
@@ -166,13 +154,33 @@ def get_projections(category):
             last_data_month.month == now.month
         )
 
+        # If current month is incomplete, exclude it from training data
+        if is_current_month_incomplete:
+            ts_for_training = ts.iloc[:-1]  # Exclude last (incomplete) month
+            current_month_actual = float(ts.iloc[-1])  # Store the partial amount
+        else:
+            ts_for_training = ts
+            current_month_actual = None
+
+        # Fit Holt-Winters Exponential Smoothing model
+        # seasonal_periods=12 for yearly seasonality
+        model = ExponentialSmoothing(
+            ts_for_training,
+            seasonal_periods=12,
+            trend='add',
+            seasonal='add',
+            initialization_method='estimated'
+        )
+
+        fitted_model = model.fit()
+
         # Forecast ahead
         # If current month is incomplete, we need 13 forecasts (current month + 12 future)
         # Otherwise, we need 12 forecasts
         forecast_steps = 13 if is_current_month_incomplete else 12
         forecast = fitted_model.forecast(steps=forecast_steps)
 
-        # Calculate confidence intervals (simple approach using standard error)
+        # Calculate confidence intervals using residuals from training data
         residuals = fitted_model.resid
         std_error = np.std(residuals)
         confidence_multiplier = 1.28  # 80% confidence interval
@@ -184,8 +192,8 @@ def get_projections(category):
             'current_month_actual': None  # Actual spending so far this month
         }
 
-        # Historical data
-        for date, value in ts.items():
+        # Historical data - only include complete months (training data)
+        for date, value in ts_for_training.items():
             result['historical'].append({
                 'date': date.strftime('%Y-%m'),
                 'value': float(value)
@@ -195,7 +203,7 @@ def get_projections(category):
         if is_current_month_incomplete:
             # First forecast is for current month (full month projection)
             # Store the actual partial spending
-            result['current_month_actual'] = float(ts.iloc[-1])
+            result['current_month_actual'] = current_month_actual
 
             # Start projections from current month
             forecast_dates = pd.date_range(start=current_month_start, periods=13, freq='MS')
