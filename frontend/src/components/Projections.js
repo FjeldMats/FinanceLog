@@ -277,13 +277,14 @@ const Projections = () => {
     const incomeChartData = [];
     const incomeProphetData = prophetProjections['Inntekt'];
 
+    // Historical data
     allMonths.forEach(month => {
       incomeChartData.push({
         month: month,
+        value: incomeData[month] || 0,
         actual: incomeData[month] || 0,
         current: null,
         projected: null,
-        prophetProjected: null,
         prophetLower: null,
         prophetUpper: null,
         prophetRange: null,
@@ -303,10 +304,10 @@ const Projections = () => {
     // Add current month for income
     incomeChartData.push({
       month: currentMonthKey,
+      value: currentMonthIncome, // Use current partial amount for seamless connection
       actual: null,
       current: currentMonthIncome,
-      projected: null,
-      prophetProjected: currentMonthIncomeProjection ? currentMonthIncomeProjection.value : null,
+      projected: currentMonthIncomeProjection ? currentMonthIncomeProjection.value : null,
       prophetLower: currentMonthIncomeProjection ? currentMonthIncomeProjection.lower : null,
       prophetUpper: currentMonthIncomeProjection ? currentMonthIncomeProjection.upper : null,
       prophetRange: currentIncomeProphetRange,
@@ -326,10 +327,10 @@ const Projections = () => {
         const range = proj.upper - proj.lower;
         incomeChartData.push({
           month: proj.date,
+          value: proj.value, // Unified value for seamless line
           actual: null,
           current: null,
-          projected: null,
-          prophetProjected: proj.value,
+          projected: proj.value,
           prophetLower: proj.lower,
           prophetUpper: proj.upper,
           prophetRange: range,
@@ -345,10 +346,10 @@ const Projections = () => {
 
         incomeChartData.push({
           month: projMonthKey,
+          value: avgIncome,
           actual: null,
           current: null,
           projected: avgIncome,
-          prophetProjected: null,
           prophetLower: null,
           prophetUpper: null,
           prophetRange: null,
@@ -365,10 +366,10 @@ const Projections = () => {
     allMonths.forEach(month => {
       expenseChartData.push({
         month: month,
+        value: expenseData[month] || 0,
         actual: expenseData[month] || 0,
         current: null,
         projected: null,
-        prophetProjected: null,
         prophetLower: null,
         prophetUpper: null,
         prophetRange: null,
@@ -410,10 +411,10 @@ const Projections = () => {
 
     expenseChartData.push({
       month: currentMonthKey,
+      value: currentMonthExpense, // Use current partial amount for seamless connection
       actual: null,
       current: currentMonthExpense,
-      projected: null,
-      prophetProjected: currentMonthExpenseProj?.value || null,
+      projected: currentMonthExpenseProj?.value || null,
       prophetLower: currentMonthExpenseProj?.lower || null,
       prophetUpper: currentMonthExpenseProj?.upper || null,
       prophetRange: currentMonthExpenseProj?.range || null,
@@ -429,10 +430,10 @@ const Projections = () => {
 
       expenseChartData.push({
         month: projMonthKey,
+        value: futureExpenseProj?.value || avgExpense,
         actual: null,
         current: null,
-        projected: futureExpenseProj ? null : avgExpense,
-        prophetProjected: futureExpenseProj?.value || null,
+        projected: futureExpenseProj?.value || avgExpense,
         prophetLower: futureExpenseProj?.lower || null,
         prophetUpper: futureExpenseProj?.upper || null,
         prophetRange: futureExpenseProj?.range || null,
@@ -463,10 +464,10 @@ const Projections = () => {
       months.forEach(month => {
         chartData.push({
           month: month,
+          value: monthlyAmounts[month],
           actual: monthlyAmounts[month],
           current: null,
           projected: null,
-          prophetProjected: null,
           prophetLower: null,
           prophetUpper: null,
           isProjection: false,
@@ -501,10 +502,10 @@ const Projections = () => {
 
       chartData.push({
         month: currentMonthKey,
+        value: currentAmount,
         actual: null,
         current: currentAmount,
-        projected: null,
-        prophetProjected: currentMonthProjection ? currentMonthProjection.value : null,
+        projected: currentMonthProjection ? currentMonthProjection.value : null,
         prophetLower: currentMonthProjection ? currentMonthProjection.lower : null,
         prophetUpper: currentMonthProjection ? currentMonthProjection.upper : null,
         prophetRange: currentProphetRange,
@@ -519,10 +520,10 @@ const Projections = () => {
           const range = proj.upper - proj.lower;
           chartData.push({
             month: proj.date,
+            value: proj.value,
             actual: null,
             current: null,
-            projected: null,
-            prophetProjected: proj.value,
+            projected: proj.value,
             prophetLower: proj.lower,
             prophetUpper: proj.upper,
             prophetRange: range,
@@ -538,10 +539,10 @@ const Projections = () => {
 
           chartData.push({
             month: projMonthKey,
+            value: average,
             actual: null,
             current: null,
             projected: average,
-            prophetProjected: null,
             prophetLower: null,
             prophetUpper: null,
             isProjection: true,
@@ -585,11 +586,15 @@ const Projections = () => {
       const currentSavings = currentIncome > 0 || currentExpense > 0 ? currentIncome - currentExpense : null;
 
       // Calculate projected savings (Prophet or average)
-      const projectedIncome = incomeEntry?.prophetProjected || incomeEntry?.projected || 0;
-      const projectedExpense = expenseEntry?.prophetProjected || expenseEntry?.projected || 0;
-      const projectedSavings = (incomeEntry?.prophetProjected || incomeEntry?.projected) &&
-                               (expenseEntry?.prophetProjected || expenseEntry?.projected)
+      const projectedIncome = incomeEntry?.projected || 0;
+      const projectedExpense = expenseEntry?.projected || 0;
+      const projectedSavings = incomeEntry?.projected && expenseEntry?.projected
                                ? projectedIncome - projectedExpense : null;
+
+      // Calculate unified value (actual, current, or projected)
+      const unifiedValue = actualSavings !== null ? actualSavings :
+                          currentSavings !== null ? currentSavings :
+                          projectedSavings;
 
       // Calculate confidence intervals for Prophet projections
       let prophetLower = null;
@@ -606,10 +611,10 @@ const Projections = () => {
 
       savingsData.push({
         month,
+        value: unifiedValue,
         actual: actualSavings,
         current: currentSavings,
         projected: projectedSavings,
-        prophetProjected: projectedSavings,
         prophetLower,
         prophetUpper,
         prophetRange,
@@ -638,6 +643,53 @@ const Projections = () => {
     return date.toLocaleDateString('nb-NO', { year: 'numeric', month: 'short' });
   };
 
+  // Custom tooltip component
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (!active || !payload || payload.length === 0) return null;
+
+    // Find confidence interval values
+    const prophetLower = payload.find(p => p.dataKey === 'prophetLower')?.value;
+    const prophetUpper = payload.find(p => p.dataKey === 'prophetUpper')?.value;
+    const hasConfidenceInterval = prophetLower !== null && prophetLower !== undefined &&
+                                   prophetUpper !== null && prophetUpper !== undefined;
+
+    return (
+      <div style={{
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        border: '1px solid #ccc',
+        borderRadius: '4px',
+        padding: '10px'
+      }}>
+        <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>
+          {formatMonth(label)}
+        </p>
+        {payload.map((entry, index) => {
+          // Skip null values and confidence range components
+          if (entry.value === null || entry.value === undefined) return null;
+          if (entry.dataKey === 'prophetLower' || entry.dataKey === 'prophetRange') return null;
+          if (entry.dataKey === 'prophetUpper') return null; // Don't show upper separately
+
+          // Format the name
+          let displayName = entry.name;
+          if (displayName === 'Confidence Range') return null;
+
+          return (
+            <p key={index} style={{ color: entry.color, margin: '3px 0' }}>
+              <span style={{ fontWeight: 'bold' }}>{displayName}:</span> {formatCurrency(entry.value)}
+            </p>
+          );
+        })}
+
+        {/* Show confidence interval if available */}
+        {hasConfidenceInterval && (
+          <p style={{ color: '#10b981', margin: '3px 0', fontSize: '0.9em' }}>
+            <span style={{ fontWeight: 'bold' }}>Range:</span> {formatCurrency(prophetLower)} - {formatCurrency(prophetUpper)}
+          </p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-primary">Financial Projections</h1>
@@ -654,7 +706,7 @@ const Projections = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Total Income Chart */}
         <ChartContainer title="Total Income">
-          <ComposedChart data={incomeChartData}>
+          <ComposedChart data={incomeChartData} isAnimationActive={false}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey="month"
@@ -664,15 +716,7 @@ const Projections = () => {
               height={80}
             />
             <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
-            <Tooltip
-              formatter={(value, name) => [formatCurrency(value), name]}
-              labelFormatter={formatMonth}
-              contentStyle={{
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                border: '1px solid #ccc',
-                borderRadius: '4px'
-              }}
-            />
+            <Tooltip content={<CustomTooltip />} />
             <Legend />
 
             {/* Confidence interval for income */}
@@ -698,50 +742,41 @@ const Projections = () => {
               </>
             )}
 
+            {/* Historical + Current line (solid) */}
             <Line
               type="monotone"
-              dataKey="actual"
+              dataKey={(entry) => !entry.isProjection ? entry.value : null}
               stroke="#3b82f6"
               strokeWidth={3}
               name="Actual Income"
-              dot={{ r: 4, fill: '#3b82f6' }}
+              dot={(props) => {
+                const { cx, cy, payload, value } = props;
+                if (value === null || value === undefined) return null;
+                if (payload.isCurrent) {
+                  return <circle cx={cx} cy={cy} r={6} fill="#f97316" stroke="#fff" strokeWidth={2} />;
+                }
+                return <circle cx={cx} cy={cy} r={4} fill="#3b82f6" />;
+              }}
               connectNulls={false}
             />
+
+            {/* Projected line (dashed) - starts from current month */}
             <Line
               type="monotone"
-              dataKey="current"
-              stroke="#f97316"
-              strokeWidth={3}
-              name="Current Month"
-              dot={{ r: 6, fill: '#f97316', strokeWidth: 2, stroke: '#fff' }}
-              connectNulls={false}
-            />
-            <Line
-              type="monotone"
-              dataKey="prophetProjected"
+              dataKey={(entry) => (entry.isProjection || entry.isCurrent) ? entry.value : null}
               stroke="#10b981"
               strokeWidth={2}
               strokeDasharray="5 5"
-              name="Projected (AI)"
+              name="Projected Income"
               dot={false}
-              connectNulls={true}
-            />
-            <Line
-              type="monotone"
-              dataKey="projected"
-              stroke="#10b981"
-              strokeWidth={2}
-              strokeDasharray="5 5"
-              name="Projected Average"
-              dot={false}
-              connectNulls={true}
+              connectNulls={false}
             />
           </ComposedChart>
         </ChartContainer>
 
         {/* Total Expenses Chart */}
         <ChartContainer title="Total Expenses">
-          <ComposedChart data={expenseChartData}>
+          <ComposedChart data={expenseChartData} isAnimationActive={false}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey="month"
@@ -751,19 +786,11 @@ const Projections = () => {
               height={80}
             />
             <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
-            <Tooltip
-              formatter={(value, name) => [formatCurrency(value), name]}
-              labelFormatter={formatMonth}
-              contentStyle={{
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                border: '1px solid #ccc',
-                borderRadius: '4px'
-              }}
-            />
+            <Tooltip content={<CustomTooltip />} />
             <Legend />
 
             {/* Confidence interval for expenses */}
-            {expenseChartData.some(d => d.prophetProjected !== null) && (
+            {expenseChartData.some(d => d.prophetLower !== null) && (
               <>
                 <Area
                   type="monotone"
@@ -785,43 +812,34 @@ const Projections = () => {
               </>
             )}
 
+            {/* Historical + Current line (solid) */}
             <Line
               type="monotone"
-              dataKey="actual"
+              dataKey={(entry) => !entry.isProjection ? entry.value : null}
               stroke="#3b82f6"
               strokeWidth={3}
               name="Actual Expenses"
-              dot={{ r: 4, fill: '#3b82f6' }}
+              dot={(props) => {
+                const { cx, cy, payload, value } = props;
+                if (value === null || value === undefined) return null;
+                if (payload.isCurrent) {
+                  return <circle cx={cx} cy={cy} r={6} fill="#f97316" stroke="#fff" strokeWidth={2} />;
+                }
+                return <circle cx={cx} cy={cy} r={4} fill="#3b82f6" />;
+              }}
               connectNulls={false}
             />
+
+            {/* Projected line (dashed) - starts from current month */}
             <Line
               type="monotone"
-              dataKey="current"
-              stroke="#f97316"
-              strokeWidth={3}
-              name="Current Month"
-              dot={{ r: 6, fill: '#f97316', strokeWidth: 2, stroke: '#fff' }}
-              connectNulls={false}
-            />
-            <Line
-              type="monotone"
-              dataKey="prophetProjected"
+              dataKey={(entry) => (entry.isProjection || entry.isCurrent) ? entry.value : null}
               stroke="#10b981"
               strokeWidth={2}
               strokeDasharray="5 5"
-              name="Projected (AI)"
+              name="Projected Expenses"
               dot={false}
-              connectNulls={true}
-            />
-            <Line
-              type="monotone"
-              dataKey="projected"
-              stroke="#10b981"
-              strokeWidth={2}
-              strokeDasharray="5 5"
-              name="Projected Average"
-              dot={false}
-              connectNulls={true}
+              connectNulls={false}
             />
           </ComposedChart>
         </ChartContainer>
@@ -838,7 +856,7 @@ const Projections = () => {
       </p>
 
       <ChartContainer title="Monthly Savings / Loss" height={400}>
-        <ComposedChart data={savingsChartData}>
+        <ComposedChart data={savingsChartData} isAnimationActive={false}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="month"
@@ -848,15 +866,7 @@ const Projections = () => {
             height={80}
           />
           <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
-          <Tooltip
-            formatter={(value, name) => [formatCurrency(value), name]}
-            labelFormatter={formatMonth}
-            contentStyle={{
-              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              border: '1px solid #ccc',
-              borderRadius: '4px'
-            }}
-          />
+          <Tooltip content={<CustomTooltip />} />
           <Legend />
 
           {/* Zero reference line */}
@@ -893,17 +903,30 @@ const Projections = () => {
             </>
           )}
 
-          {/* Actual savings - color based on positive/negative */}
+          {/* Historical + Current line (solid) with color based on positive/negative */}
           <Line
             type="monotone"
-            dataKey="actual"
+            dataKey={(entry) => !entry.isProjection ? entry.value : null}
             stroke="#3b82f6"
             strokeWidth={3}
-            name="Actual Savings"
+            name="Actual Savings/Loss"
             dot={(props) => {
-              const { cx, cy, payload } = props;
-              const value = payload.actual;
-              if (value === null) return null;
+              const { cx, cy, payload, value } = props;
+              if (value === null || value === undefined) return null;
+
+              if (payload.isCurrent) {
+                return (
+                  <circle
+                    cx={cx}
+                    cy={cy}
+                    r={6}
+                    fill={value >= 0 ? '#10b981' : '#ef4444'}
+                    stroke="#fff"
+                    strokeWidth={2}
+                  />
+                );
+              }
+
               return (
                 <circle
                   cx={cx}
@@ -917,41 +940,16 @@ const Projections = () => {
             connectNulls={false}
           />
 
-          {/* Current month */}
+          {/* Projected line (dashed) - starts from current month */}
           <Line
             type="monotone"
-            dataKey="current"
-            stroke="#f97316"
-            strokeWidth={3}
-            name="Current Month"
-            dot={(props) => {
-              const { cx, cy, payload } = props;
-              const value = payload.current;
-              if (value === null) return null;
-              return (
-                <circle
-                  cx={cx}
-                  cy={cy}
-                  r={6}
-                  fill={value >= 0 ? '#10b981' : '#ef4444'}
-                  stroke="#fff"
-                  strokeWidth={2}
-                />
-              );
-            }}
-            connectNulls={false}
-          />
-
-          {/* Projected savings */}
-          <Line
-            type="monotone"
-            dataKey="prophetProjected"
+            dataKey={(entry) => (entry.isProjection || entry.isCurrent) ? entry.value : null}
             stroke="#10b981"
             strokeWidth={2}
             strokeDasharray="5 5"
-            name="Projected Savings"
+            name="Projected Savings/Loss"
             dot={false}
-            connectNulls={true}
+            connectNulls={false}
           />
         </ComposedChart>
       </ChartContainer>
@@ -959,7 +957,7 @@ const Projections = () => {
       {/* Category Charts */}
       <h2 className="text-2xl font-bold text-primary mt-8">Category Breakdown</h2>
       {Object.keys(categories)
-        .sort((a, b) => categories[b].total - categories[a].total) // Sort by total spending (highest first)
+        .sort((a, b) => categories[b].total - categories[a].total)
         .map(category => {
           const chartData = chartDataByCategory[category] || [];
 
@@ -977,7 +975,7 @@ const Projections = () => {
               title={category}
               subtitle={subtitle}
             >
-              <ComposedChart data={chartData}>
+              <ComposedChart data={chartData} isAnimationActive={false}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                   dataKey="month"
@@ -987,27 +985,10 @@ const Projections = () => {
                   height={80}
                 />
                 <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
-                <Tooltip
-                  formatter={(value, name) => {
-                    if (name === "Current Month (In Progress)") {
-                      return [formatCurrency(value), name];
-                    }
-                    if (name === "Confidence Range") {
-                      return null; // Don't show the area in tooltip
-                    }
-                    return [formatCurrency(value), name];
-                  }}
-                  labelFormatter={formatMonth}
-                  contentStyle={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    border: '1px solid #ccc',
-                    borderRadius: '4px'
-                  }}
-                />
+                <Tooltip content={<CustomTooltip />} />
                 <Legend />
 
                 {/* Confidence interval area (only for Prophet) */}
-                {/* Use stacked areas: invisible lower bound + visible range */}
                 {hasProphetData && (
                   <>
                     <Area
@@ -1030,49 +1011,35 @@ const Projections = () => {
                   </>
                 )}
 
+                {/* Historical + Current line (solid) */}
                 <Line
                   type="monotone"
-                  dataKey="actual"
+                  dataKey={(entry) => !entry.isProjection ? entry.value : null}
                   stroke="#3b82f6"
                   strokeWidth={3}
                   name="Actual Spending"
-                  dot={{ r: 4, fill: '#3b82f6' }}
-                  connectNulls={false}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="current"
-                  stroke="#f97316"
-                  strokeWidth={3}
-                  name="Current Month (In Progress)"
-                  dot={{ r: 6, fill: '#f97316', strokeWidth: 2, stroke: '#fff' }}
+                  dot={(props) => {
+                    const { cx, cy, payload, value } = props;
+                    if (value === null || value === undefined) return null;
+                    if (payload.isCurrent) {
+                      return <circle cx={cx} cy={cy} r={6} fill="#f97316" stroke="#fff" strokeWidth={2} />;
+                    }
+                    return <circle cx={cx} cy={cy} r={4} fill="#3b82f6" />;
+                  }}
                   connectNulls={false}
                 />
 
-                {/* Prophet projection or simple average */}
-                {hasProphetData ? (
-                  <Line
-                    type="monotone"
-                    dataKey="prophetProjected"
-                    stroke="#10b981"
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    name="AI Projection (Prophet)"
-                    dot={false}
-                    connectNulls={true}
-                  />
-                ) : (
-                  <Line
-                    type="monotone"
-                    dataKey="projected"
-                    stroke="#10b981"
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    name="Simple Average"
-                    dot={false}
-                    connectNulls={true}
-                  />
-                )}
+                {/* Projected line (dashed) - starts from current month */}
+                <Line
+                  type="monotone"
+                  dataKey={(entry) => (entry.isProjection || entry.isCurrent) ? entry.value : null}
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  name="Projected Spending"
+                  dot={false}
+                  connectNulls={false}
+                />
               </ComposedChart>
             </ChartContainer>
           );
