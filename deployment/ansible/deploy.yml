@@ -255,13 +255,23 @@
 
     # --- Post-Deployment Integration Tests ---
 
-    - name: Wait for application to be ready
+    - name: Wait for nginx to be ready
       wait_for:
         host: localhost
-        port: 5000
+        port: 80
         delay: 5
         timeout: 60
         state: started
+
+    - name: Wait for backend API to respond
+      uri:
+        url: "http://localhost/api/health"
+        status_code: 200
+        timeout: 5
+      register: api_health
+      until: api_health.status == 200
+      retries: 12
+      delay: 5
 
     - name: Run post-deployment integration tests (read-only)
       shell: |
