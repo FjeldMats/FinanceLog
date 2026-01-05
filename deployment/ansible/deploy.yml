@@ -128,11 +128,17 @@
         path: "{{ project_dir }}/docker-compose.yml"
       register: docker_compose_file
 
+    - name: Get git commit hash from local repository
+      local_action: command git rev-parse --short HEAD
+      register: git_commit_hash
+      changed_when: false
+
     - name: Build backend Docker image
       when: docker_compose_file.stat.exists
       environment:
         DOCKER_BUILDKIT: "1"
         COMPOSE_DOCKER_CLI_BUILD: "1"
+        GIT_COMMIT: "{{ git_commit_hash.stdout }}"
       command: docker compose build --pull backend
       args:
         chdir: "{{ project_dir }}"
@@ -145,6 +151,7 @@
       environment:
         DOCKER_BUILDKIT: "1"
         COMPOSE_DOCKER_CLI_BUILD: "1"
+        GIT_COMMIT: "{{ git_commit_hash.stdout }}"
       command: docker compose build frontend
       args:
         chdir: "{{ project_dir }}"

@@ -2,13 +2,17 @@
 FROM node:20-alpine as build
 WORKDIR /app
 
-# Copy package files
+# Copy package files (this layer will be cached unless package files change)
 COPY package*.json ./
 
-# Install dependencies
+# Install dependencies (this layer will be cached unless package files change)
 RUN npm install --legacy-peer-deps
 
-# Copy the rest of the application code
+# Add build argument for cache busting when code changes
+ARG GIT_COMMIT=unknown
+ENV GIT_COMMIT=${GIT_COMMIT}
+
+# Copy the rest of the application code (this invalidates cache only when source code changes)
 COPY . .
 
 # Set environment variable for production build
