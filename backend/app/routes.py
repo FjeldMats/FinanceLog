@@ -33,7 +33,6 @@ def add_cors_headers(response):
 @token_required
 def get_transactions(current_user):
     """Get all transactions for the current user or filter by year, month, and category."""
-    # Test comment to verify Docker caching works correctly - iteration 2
     year = request.args.get('year', type=int)
     month = request.args.get('month', type=int)
     category = request.args.get('category')
