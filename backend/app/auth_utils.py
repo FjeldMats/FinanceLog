@@ -1,8 +1,9 @@
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime
 from functools import wraps
 from flask import request, jsonify, current_app
 from app.models import User
+
 
 def generate_token(user_id):
     """Generate JWT token for user"""
@@ -18,6 +19,7 @@ def generate_token(user_id):
     )
     return token
 
+
 def decode_token(token):
     """Decode and validate JWT token"""
     try:
@@ -31,6 +33,7 @@ def decode_token(token):
         return None  # Token expired
     except jwt.InvalidTokenError:
         return None  # Invalid token
+
 
 def token_required(f):
     """Decorator to protect routes with JWT authentication"""
@@ -64,6 +67,7 @@ def token_required(f):
 
     return decorated
 
+
 def get_current_user():
     """Get current user from request token (optional helper)"""
     token = None
@@ -82,4 +86,3 @@ def get_current_user():
         return None
 
     return User.query.get(payload['user_id'])
-

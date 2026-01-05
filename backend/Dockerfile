@@ -4,12 +4,12 @@ FROM python:3.12-slim
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy only requirements first to leverage Docker cache
-COPY requirements.txt .
+# Copy only pyproject.toml first to leverage Docker cache
+COPY pyproject.toml .
 
-# Install dependencies (this layer will be cached unless requirements.txt changes)
+# Install production dependencies only (this layer will be cached unless pyproject.toml changes)
 RUN pip install --upgrade pip \
-    && pip install -r requirements.txt
+    && pip install .
 
 # Add build argument for cache busting when code changes
 ARG GIT_COMMIT=unknown

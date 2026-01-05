@@ -1,9 +1,27 @@
 # Python
-backend/env
+backend/env/
+backend/venv/
 backend/app/__pycache__/
 backend/secrets/
 *.pyc
+*.pyo
+*.pyd
 __pycache__/
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Testing
+backend/.pytest_cache/
+backend/htmlcov/
+backend/.coverage
+backend/coverage.xml
+backend/test-results/
+*.cover
+.hypothesis/
 
 # Database
 database/env

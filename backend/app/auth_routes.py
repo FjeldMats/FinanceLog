@@ -6,10 +6,12 @@ import re
 
 auth_bp = Blueprint('auth', __name__)
 
+
 def validate_email(email):
     """Validate email format"""
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(pattern, email) is not None
+
 
 def validate_password(password):
     """Validate password strength"""
@@ -22,6 +24,7 @@ def validate_password(password):
     if not re.search(r'[0-9]', password):
         return False, "Password must contain at least one number"
     return True, "Password is valid"
+
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
@@ -77,6 +80,7 @@ def register():
         db.session.rollback()
         return jsonify({'message': f'Error creating user: {str(e)}'}), 500
 
+
 @auth_bp.route('/login', methods=['POST'])
 def login():
     """Login user and return JWT token"""
@@ -105,6 +109,7 @@ def login():
         'user': user.to_dict()
     }), 200
 
+
 @auth_bp.route('/me', methods=['GET'])
 @token_required
 def get_current_user_info(current_user):
@@ -113,11 +118,11 @@ def get_current_user_info(current_user):
         'user': current_user.to_dict()
     }), 200
 
+
 @auth_bp.route('/logout', methods=['POST'])
 @token_required
-def logout(current_user):
+def logout(_current_user):
     """Logout user (client-side token removal)"""
     # With JWT, logout is handled client-side by removing the token
     # This endpoint is optional but can be used for logging/analytics
     return jsonify({'message': 'Logout successful'}), 200
-

@@ -2,6 +2,7 @@ from app import db
 from passlib.hash import scrypt
 from sqlalchemy import extract  # added import
 
+
 class Transaction(db.Model):
     __tablename__ = 'transactions'
 
@@ -11,7 +12,8 @@ class Transaction(db.Model):
     subcategory = db.Column(db.String(255))
     description = db.Column(db.Text)
     amount = db.Column(db.Numeric(10, 2), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey(
+        'users.id', ondelete='CASCADE'), nullable=False)
 
     # Relationship to User
     user = db.relationship('User', backref='transactions')
@@ -34,6 +36,7 @@ class Transaction(db.Model):
             extract('month', cls.transaction_date) == month,
             cls.category == category
         ).all()
+
 
 class User(db.Model):
     __tablename__ = 'users'

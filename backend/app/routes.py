@@ -1,15 +1,12 @@
 import logging
-from flask import Blueprint, request, jsonify, session
-from flask_cors import cross_origin
-from app.models import Transaction, User
+from flask import Blueprint, request, jsonify
+from app.models import Transaction
 from app import db
 from app.auth_utils import token_required
-from sqlalchemy import text
 import pandas as pd
 import numpy as np
-from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
-from datetime import datetime, timedelta
+from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -18,16 +15,19 @@ logger = logging.getLogger(__name__)
 
 api = Blueprint('api', __name__)
 
+
 @api.before_request
 def disable_csrf():
-    if request.endpoint.startswith('api.'): # type: ignore
+    if request.endpoint.startswith('api.'):  # type: ignore
         setattr(request, '_disable_csrf', True)
+
 
 @api.after_request
 def add_cors_headers(response):
     response.headers['Access-Control-Allow-Credentials'] = 'true'
     # ...you can add any additional CORS headers if needed...
     return response
+
 
 @api.route('/transactions', methods=['GET'])
 @token_required
@@ -51,6 +51,7 @@ def get_transactions(current_user):
 
     return jsonify([t.to_dict() for t in transactions])
 
+
 @api.route('/transaction', methods=['POST'])
 @token_required
 def add_transaction(current_user):
@@ -62,11 +63,11 @@ def add_transaction(current_user):
 
     try:
         transaction = Transaction(
-            transaction_date=data['transaction_date'], # type: ignore
-            category=data['category'], # type: ignore
-            subcategory=data.get('subcategory'), # type: ignore
-            description=data.get('description'), # type: ignore
-            amount=data['amount'], # type: ignore
+            transaction_date=data['transaction_date'],  # type: ignore
+            category=data['category'],  # type: ignore
+            subcategory=data.get('subcategory'),  # type: ignore
+            description=data.get('description'),  # type: ignore
+            amount=data['amount'],  # type: ignore
             user_id=current_user.id  # Set user_id from authenticated user
         )
 
@@ -84,16 +85,19 @@ def add_transaction(current_user):
 @token_required
 def delete_transaction(current_user, transaction_id):
     """Delete a transaction (only if it belongs to the current user)."""
-    transaction = Transaction.query.filter_by(id=transaction_id, user_id=current_user.id).first_or_404()
+    transaction = Transaction.query.filter_by(
+        id=transaction_id, user_id=current_user.id).first_or_404()
     db.session.delete(transaction)
     db.session.commit()
     return jsonify({"message": "Transaction deleted successfully"}), 200
+
 
 @api.route('/transaction/<int:transaction_id>', methods=['PUT'])
 @token_required
 def update_transaction(current_user, transaction_id):
     """Update a transaction (only if it belongs to the current user)."""
-    transaction = Transaction.query.filter_by(id=transaction_id, user_id=current_user.id).first_or_404()
+    transaction = Transaction.query.filter_by(
+        id=transaction_id, user_id=current_user.id).first_or_404()
     data = request.get_json()
 
     try:
@@ -115,13 +119,15 @@ def update_transaction(current_user, transaction_id):
         logger.error(f"Error updating transaction: {str(e)}")
         return jsonify({"error": f"Failed to update transaction: {str(e)}"}), 500
 
+
 @api.route('/projections/<category>', methods=['GET'])
 @token_required
 def get_projections(current_user, category):
     """Get AI-based projections using Holt-Winters Exponential Smoothing for the current user."""
     try:
         # Get all transactions for this category for the current user
-        transactions = Transaction.query.filter_by(category=category, user_id=current_user.id).all()
+        transactions = Transaction.query.filter_by(
+            category=category, user_id=current_user.id).all()
 
         if len(transactions) < 24:
             return jsonify({
@@ -140,7 +146,8 @@ def get_projections(current_user, category):
         # Create DataFrame and aggregate by month
         df = pd.DataFrame(data)
         df['date'] = pd.to_datetime(df['date'])
-        df = df.groupby(df['date'].dt.to_period('M')).agg({'amount': 'sum'}).reset_index()
+        df = df.groupby(df['date'].dt.to_period('M')).agg(
+            {'amount': 'sum'}).reset_index()
         df['date'] = df['date'].dt.to_timestamp()
         df = df.sort_values('date')
 
@@ -156,19 +163,21 @@ def get_projections(current_user, category):
 
         # Determine if current month is incomplete
         now = datetime.now()
-        current_month_start = pd.Timestamp(year=now.year, month=now.month, day=1)
+        current_month_start = pd.Timestamp(
+            year=now.year, month=now.month, day=1)
         last_data_month = ts.index[-1]
 
         # Check if the last data point is the current month (incomplete)
         is_current_month_incomplete = (
-            last_data_month.year == now.year and
-            last_data_month.month == now.month
+            last_data_month.year == now.year
+            and last_data_month.month == now.month
         )
 
         # If current month is incomplete, exclude it from training data
         if is_current_month_incomplete:
             ts_for_training = ts.iloc[:-1]  # Exclude last (incomplete) month
-            current_month_actual = float(ts.iloc[-1])  # Store the partial amount
+            # Store the partial amount
+            current_month_actual = float(ts.iloc[-1])
         else:
             ts_for_training = ts
             current_month_actual = None
@@ -217,10 +226,12 @@ def get_projections(current_user, category):
             result['current_month_actual'] = current_month_actual
 
             # Start projections from current month
-            forecast_dates = pd.date_range(start=current_month_start, periods=13, freq='MS')
+            forecast_dates = pd.date_range(
+                start=current_month_start, periods=13, freq='MS')
         else:
             # Start projections from next month
-            forecast_dates = pd.date_range(start=ts.index[-1] + pd.DateOffset(months=1), periods=12, freq='MS')
+            forecast_dates = pd.date_range(
+                start=ts.index[-1] + pd.DateOffset(months=1), periods=12, freq='MS')
 
         for date, value in zip(forecast_dates, forecast):
             result['projected'].append({

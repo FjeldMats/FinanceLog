@@ -1,5 +1,6 @@
 from app import db
-from app.models import Transaction, User
+from app.models import User
+
 
 def init_db(app):
     with app.app_context():
@@ -7,7 +8,7 @@ def init_db(app):
 
         # Add a default admin user if not exists
         if not User.query.filter_by(username='admin').first():
-            admin = User(username='admin') # type: ignore
+            admin = User(username='admin')  # type: ignore
             admin.set_password('password')  # Replace with a secure password
             db.session.add(admin)
             db.session.commit()
