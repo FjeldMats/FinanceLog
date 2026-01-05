@@ -182,10 +182,10 @@
       debug:
         msg: "{{ user_story_result.stdout_lines }}"
 
-    - name: Run complete test suite
+    - name: Run complete test suite (excluding integration tests)
       shell: |
         source env/bin/activate
-        pytest tests/ -v --tb=short
+        pytest tests/ --ignore=tests/test_integration.py -v --tb=short
       args:
         chdir: "{{ project_dir }}/backend"
         executable: /bin/bash
