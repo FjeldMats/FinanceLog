@@ -1,5 +1,5 @@
 from app import db
-from werkzeug.security import generate_password_hash, check_password_hash
+from passlib.hash import scrypt
 from sqlalchemy import extract  # added import
 
 class Transaction(db.Model):
@@ -44,10 +44,13 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = scrypt.hash(password)
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        try:
+            return scrypt.verify(password, self.password_hash)
+        except Exception:
+            return False
 
     def to_dict(self):
         return {
