@@ -276,10 +276,10 @@
     - name: Run post-deployment integration tests (read-only)
       shell: |
         source env/bin/activate
-        INTEGRATION_TEST_URL=http://localhost:5000 pytest tests/test_integration.py::TestDeploymentHealth -v --tb=short
-        INTEGRATION_TEST_URL=http://localhost:5000 pytest tests/test_integration.py::TestAuthenticationEndpoints -v --tb=short
-        INTEGRATION_TEST_URL=http://localhost:5000 pytest tests/test_integration.py::TestAPIEndpoints -v --tb=short
-        INTEGRATION_TEST_URL=http://localhost:5000 pytest tests/test_integration.py::TestDatabaseConnectivity -v --tb=short
+        INTEGRATION_TEST_URL=http://localhost pytest tests/test_integration.py::TestDeploymentHealth -v --tb=short
+        INTEGRATION_TEST_URL=http://localhost pytest tests/test_integration.py::TestAuthenticationEndpoints -v --tb=short
+        INTEGRATION_TEST_URL=http://localhost pytest tests/test_integration.py::TestAPIEndpoints -v --tb=short
+        INTEGRATION_TEST_URL=http://localhost pytest tests/test_integration.py::TestDatabaseConnectivity -v --tb=short
       args:
         chdir: "{{ project_dir }}/backend"
         executable: /bin/bash
@@ -293,7 +293,7 @@
     - name: Run post-deployment integration tests (with data cleanup)
       shell: |
         source env/bin/activate
-        INTEGRATION_TEST_URL=http://localhost:5000 pytest tests/test_integration.py::TestDataIntegrity -v --tb=short
+        INTEGRATION_TEST_URL=http://localhost pytest tests/test_integration.py::TestDataIntegrity -v --tb=short
       args:
         chdir: "{{ project_dir }}/backend"
         executable: /bin/bash
