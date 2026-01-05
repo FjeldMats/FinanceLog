@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify, session
 from flask_cors import cross_origin
 from app.models import Transaction, User
 from app import db
+from app.auth_utils import token_required
 from sqlalchemy import text
 import pandas as pd
 import numpy as np
@@ -29,15 +30,25 @@ def add_cors_headers(response):
     return response
 
 @api.route('/transactions', methods=['GET'])
-def get_transactions():
-    """Get all transactions or filter by year, month, and category."""
+@token_required
+def get_transactions(current_user):
+    """Get all transactions for the current user or filter by year, month, and category."""
     year = request.args.get('year', type=int)
     month = request.args.get('month', type=int)
     category = request.args.get('category')
+
+    # Base query filtered by user
+    query = Transaction.query.filter_by(user_id=current_user.id)
+
     if year and month and category:
-        transactions = Transaction.get_by_month_and_category(year, month, category)
+        transactions = query.filter(
+            db.extract('year', Transaction.transaction_date) == year,
+            db.extract('month', Transaction.transaction_date) == month,
+            Transaction.category == category
+        ).all()
     else:
-        transactions = Transaction.query.all()
+        transactions = query.all()
+
     return jsonify([t.to_dict() for t in transactions])
 
 @api.route('/transaction', methods=['POST'])
