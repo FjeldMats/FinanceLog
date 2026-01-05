@@ -14,8 +14,8 @@ export const AuthProvider = ({ children }) => {
       const storedToken = localStorage.getItem('token');
       if (storedToken) {
         try {
-          const userData = await getCurrentUser();
-          setUser(userData);
+          const response = await getCurrentUser();
+          setUser(response.user);
           setToken(storedToken);
         } catch (error) {
           // Token invalid or expired
