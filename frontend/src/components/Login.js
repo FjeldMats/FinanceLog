@@ -30,6 +30,13 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="bg-table p-8 rounded-lg shadow-md w-full max-w-md">
+        <div className="flex justify-center mb-6">
+          <img
+            src="/logo.svg"
+            alt="SpendLog Logo"
+            className="w-24 h-24"
+          />
+        </div>
         <h2 className="text-3xl font-bold mb-6 text-center">Login</h2>
         
         {error && (
