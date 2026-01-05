@@ -39,13 +39,13 @@ echo ""
 echo "Step 2: Current data in 'Hus' category:"
 echo "----------------------------------------"
 docker compose exec -T database psql -U admin -d finance_tracker -c "
-SELECT 
-    subcategory, 
+SELECT
+    subcategory,
     COUNT(*) as transaction_count,
     SUM(amount) as total_amount
-FROM transactions 
-WHERE category = 'Hus' 
-  AND subcategory IN ('Renovasjon (moss kommune)', 'Eindomskatt (moss kommune)')
+FROM transactions
+WHERE category = 'Hus'
+  AND subcategory LIKE '%moss kommune%'
 GROUP BY subcategory
 ORDER BY subcategory;
 "
@@ -57,6 +57,8 @@ echo "----------------------------------------"
 echo "This will:"
 echo "  1. Update all transactions with subcategory 'Renovasjon (moss kommune)' to 'moss kommune'"
 echo "  2. Update all transactions with subcategory 'Eindomskatt (moss kommune)' to 'moss kommune'"
+echo "  3. Update all transactions with subcategory 'Eindomskatt  (moss kommune)' to 'moss kommune'"
+echo "  (Note: This includes all variations with different spacing)"
 echo ""
 read -p "Do you want to proceed with the migration? (yes/no): " CONFIRM
 
@@ -73,17 +75,12 @@ echo "----------------------------------------"
 docker compose exec -T database psql -U admin -d finance_tracker <<EOF
 BEGIN;
 
--- Update Renovasjon (moss kommune) to moss kommune
-UPDATE transactions 
+-- Update all moss kommune related subcategories to 'moss kommune'
+-- This handles all variations including different spacing
+UPDATE transactions
 SET subcategory = 'moss kommune'
-WHERE category = 'Hus' 
-  AND subcategory = 'Renovasjon (moss kommune)';
-
--- Update Eindomskatt (moss kommune) to moss kommune
-UPDATE transactions 
-SET subcategory = 'moss kommune'
-WHERE category = 'Hus' 
-  AND subcategory = 'Eindomskatt (moss kommune)';
+WHERE category = 'Hus'
+  AND subcategory LIKE '%moss kommune%';
 
 COMMIT;
 EOF
@@ -115,12 +112,13 @@ GROUP BY subcategory;
 echo ""
 echo "Checking for old subcategories (should be empty):"
 docker compose exec -T database psql -U admin -d finance_tracker -c "
-SELECT 
-    subcategory, 
+SELECT
+    subcategory,
     COUNT(*) as transaction_count
-FROM transactions 
-WHERE category = 'Hus' 
-  AND subcategory IN ('Renovasjon (moss kommune)', 'Eindomskatt (moss kommune)')
+FROM transactions
+WHERE category = 'Hus'
+  AND subcategory LIKE '%moss kommune%'
+  AND subcategory != 'moss kommune'
 GROUP BY subcategory;
 "
 
