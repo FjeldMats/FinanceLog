@@ -38,6 +38,38 @@ def health_check():
     }), 200
 
 
+@api.route('/categories', methods=['GET'])
+@token_required
+def get_categories(current_user):
+    """Get all unique categories and their subcategories for the current user."""
+    try:
+        # Query to get all unique category-subcategory pairs for the user
+        results = db.session.query(
+            Transaction.category,
+            Transaction.subcategory
+        ).filter_by(
+            user_id=current_user.id
+        ).distinct().all()
+
+        # Organize into a dictionary: {category: [subcategories]}
+        categories_dict = {}
+        for category, subcategory in results:
+            if category not in categories_dict:
+                categories_dict[category] = []
+            if subcategory and subcategory not in categories_dict[category]:
+                categories_dict[category].append(subcategory)
+
+        # Sort subcategories for each category
+        for category in categories_dict:
+            categories_dict[category].sort()
+
+        return jsonify(categories_dict), 200
+
+    except Exception as e:
+        logger.error(f"Error fetching categories: {str(e)}")
+        return jsonify({'message': f'Error fetching categories: {str(e)}'}), 500
+
+
 @api.route('/transactions', methods=['GET'])
 @token_required
 def get_transactions(current_user):
