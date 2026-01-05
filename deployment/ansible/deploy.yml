@@ -252,3 +252,55 @@
       command: docker compose up -d
       args:
         chdir: "{{ project_dir }}"
+
+    # --- Post-Deployment Integration Tests ---
+
+    - name: Wait for application to be ready
+      wait_for:
+        host: localhost
+        port: 5000
+        delay: 5
+        timeout: 60
+        state: started
+
+    - name: Run post-deployment integration tests (read-only)
+      shell: |
+        source env/bin/activate
+        INTEGRATION_TEST_URL=http://localhost:5000 pytest tests/test_integration.py::TestDeploymentHealth -v --tb=short
+        INTEGRATION_TEST_URL=http://localhost:5000 pytest tests/test_integration.py::TestAuthenticationEndpoints -v --tb=short
+        INTEGRATION_TEST_URL=http://localhost:5000 pytest tests/test_integration.py::TestAPIEndpoints -v --tb=short
+        INTEGRATION_TEST_URL=http://localhost:5000 pytest tests/test_integration.py::TestDatabaseConnectivity -v --tb=short
+      args:
+        chdir: "{{ project_dir }}/backend"
+        executable: /bin/bash
+      register: integration_readonly_result
+      failed_when: integration_readonly_result.rc != 0
+
+    - name: Display read-only integration test results
+      debug:
+        msg: "{{ integration_readonly_result.stdout_lines }}"
+
+    - name: Run post-deployment integration tests (with data cleanup)
+      shell: |
+        source env/bin/activate
+        INTEGRATION_TEST_URL=http://localhost:5000 pytest tests/test_integration.py::TestDataIntegrity -v --tb=short
+      args:
+        chdir: "{{ project_dir }}/backend"
+        executable: /bin/bash
+      register: integration_write_result
+      failed_when: integration_write_result.rc != 0
+
+    - name: Display write integration test results
+      debug:
+        msg: "{{ integration_write_result.stdout_lines }}"
+
+    - name: Display deployment success message
+      debug:
+        msg: |
+          ========================================
+          DEPLOYMENT SUCCESSFUL!
+          ========================================
+          All pre-deployment tests passed ✓
+          All post-deployment tests passed ✓
+          Application is running and verified ✓
+          ========================================
