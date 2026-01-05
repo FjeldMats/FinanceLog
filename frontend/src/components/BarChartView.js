@@ -15,7 +15,7 @@ import { Chart } from 'react-chartjs-2';
 
 // Import the categories from your existing configuration
 const CATEGORY_OPTIONS = {
-  Hus: ['Lån Storebrand', 'Eindomskatt (moss kommune)', 'Renovasjon (moss kommune)', 'Gjensidige forsikring hus'],
+  Hus: ['Lån Storebrand', 'moss kommune', 'Gjensidige forsikring hus'],
   'Faste utgifter': ['Telia telefon', 'Telia internett/Tv', 'Strøm'],
   Personelig: ['Spenst', 'Klær', 'Sparing'],
   Mat: ['Rema 1000', 'Kiwi', 'Spar', 'Meny', 'Bunnpris', 'Willis', 'Nordby', 'Obs', 'Div butikk'],
