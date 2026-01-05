@@ -52,12 +52,10 @@ def get_transactions(current_user):
     return jsonify([t.to_dict() for t in transactions])
 
 @api.route('/transaction', methods=['POST'])
-def add_transaction():
-    """Add a new transaction."""
+@token_required
+def add_transaction(current_user):
+    """Add a new transaction for the current user."""
     data = request.get_json()
-
-    # Debugging: Print received data
-    print("Received Data:", data)
 
     if not data:
         return jsonify({"error": "No data received"}), 400
@@ -68,34 +66,34 @@ def add_transaction():
             category=data['category'], # type: ignore
             subcategory=data.get('subcategory'), # type: ignore
             description=data.get('description'), # type: ignore
-            amount=data['amount'] # type: ignore
+            amount=data['amount'], # type: ignore
+            user_id=current_user.id  # Set user_id from authenticated user
         )
 
         db.session.add(transaction)
         db.session.commit()
 
-        # Debugging: Check if it was committed
-        print("Transaction Added:", transaction.to_dict())
-
         return jsonify(transaction.to_dict()), 201
     except Exception as e:
-        db.session.rollback()  # Rollback in case of error
-        print("Error adding transaction:", str(e))
-        return jsonify({"error": "Failed to add transaction"}), 500
+        db.session.rollback()
+        logger.error(f"Error adding transaction: {str(e)}")
+        return jsonify({"error": "Failed to add transaction", "details": str(e)}), 500
 
 
 @api.route('/transaction/<int:transaction_id>', methods=['DELETE'])
-def delete_transaction(transaction_id):
-    """Delete a transaction."""
-    transaction = Transaction.query.get_or_404(transaction_id)
+@token_required
+def delete_transaction(current_user, transaction_id):
+    """Delete a transaction (only if it belongs to the current user)."""
+    transaction = Transaction.query.filter_by(id=transaction_id, user_id=current_user.id).first_or_404()
     db.session.delete(transaction)
     db.session.commit()
     return jsonify({"message": "Transaction deleted successfully"}), 200
 
 @api.route('/transaction/<int:transaction_id>', methods=['PUT'])
-def update_transaction(transaction_id):
-    """Update a transaction."""
-    transaction = Transaction.query.get_or_404(transaction_id)
+@token_required
+def update_transaction(current_user, transaction_id):
+    """Update a transaction (only if it belongs to the current user)."""
+    transaction = Transaction.query.filter_by(id=transaction_id, user_id=current_user.id).first_or_404()
     data = request.get_json()
 
     try:
@@ -114,14 +112,16 @@ def update_transaction(transaction_id):
         return jsonify(transaction.to_dict()), 200
     except Exception as e:
         db.session.rollback()
+        logger.error(f"Error updating transaction: {str(e)}")
         return jsonify({"error": f"Failed to update transaction: {str(e)}"}), 500
 
 @api.route('/projections/<category>', methods=['GET'])
-def get_projections(category):
-    """Get AI-based projections using Holt-Winters Exponential Smoothing."""
+@token_required
+def get_projections(current_user, category):
+    """Get AI-based projections using Holt-Winters Exponential Smoothing for the current user."""
     try:
-        # Get all transactions for this category
-        transactions = Transaction.query.filter_by(category=category).all()
+        # Get all transactions for this category for the current user
+        transactions = Transaction.query.filter_by(category=category, user_id=current_user.id).all()
 
         if len(transactions) < 24:
             return jsonify({
