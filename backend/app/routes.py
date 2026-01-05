@@ -62,8 +62,13 @@ def add_transaction(current_user):
         return jsonify({"error": "No data received"}), 400
 
     try:
+        # Parse transaction_date if it's a string
+        transaction_date = data['transaction_date']
+        if isinstance(transaction_date, str):
+            transaction_date = datetime.strptime(transaction_date, '%Y-%m-%d').date()
+
         transaction = Transaction(
-            transaction_date=data['transaction_date'],  # type: ignore
+            transaction_date=transaction_date,  # type: ignore
             category=data['category'],  # type: ignore
             subcategory=data.get('subcategory'),  # type: ignore
             description=data.get('description'),  # type: ignore
@@ -110,7 +115,11 @@ def update_transaction(current_user, transaction_id):
         if 'amount' in data:
             transaction.amount = data['amount']
         if 'transaction_date' in data:
-            transaction.transaction_date = data['transaction_date']
+            # Parse transaction_date if it's a string
+            transaction_date = data['transaction_date']
+            if isinstance(transaction_date, str):
+                transaction_date = datetime.strptime(transaction_date, '%Y-%m-%d').date()
+            transaction.transaction_date = transaction_date
 
         db.session.commit()
         return jsonify(transaction.to_dict()), 200
