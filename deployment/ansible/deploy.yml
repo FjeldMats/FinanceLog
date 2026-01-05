@@ -168,6 +168,34 @@
       debug:
         msg: "{{ code_quality_result.stdout_lines }}"
 
+    - name: Run user story tests (authentication, transactions, projections)
+      shell: |
+        source env/bin/activate
+        pytest tests/test_auth.py tests/test_transactions.py tests/test_projections.py -v --tb=short
+      args:
+        chdir: "{{ project_dir }}/backend"
+        executable: /bin/bash
+      register: user_story_result
+      failed_when: user_story_result.rc != 0
+
+    - name: Display user story test results
+      debug:
+        msg: "{{ user_story_result.stdout_lines }}"
+
+    - name: Run complete test suite
+      shell: |
+        source env/bin/activate
+        pytest tests/ -v --tb=short
+      args:
+        chdir: "{{ project_dir }}/backend"
+        executable: /bin/bash
+      register: full_test_result
+      failed_when: full_test_result.rc != 0
+
+    - name: Display full test suite results
+      debug:
+        msg: "{{ full_test_result.stdout_lines }}"
+
     # --- Continue with deployment ---
 
     - name: Check for docker-compose.yml file
