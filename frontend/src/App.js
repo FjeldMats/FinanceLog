@@ -7,7 +7,6 @@ import TransactionTable from './components/TransactionTable';
 import Categories from './components/Categories';
 import Projections from './components/Projections';
 import Login from './components/Login';
-import Register from './components/Register';
 import ProtectedRoute from './components/ProtectedRoute';
 
 const Navbar = () => {
@@ -69,7 +68,6 @@ const AppContent = () => {
       <main className="container mx-auto px-4 py-8">
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
           <Route path="/" element={
             <ProtectedRoute>
               <Dashboard />
